@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer Shield Shadow / Glow Layer -->
+    <path
+        android:pathData="M54,22 C67,22 80,26 80,38 C80,62 65,77 54,86 C43,77 28,62 28,38 C28,26 41,22 54,22 Z"
+        android:fillColor="#3310B981" />
+
+    <!-- Main Metallic / Neon Shield Body -->
+    <path
+        android:pathData="M54,25 C65,25 76,28.8 76,39.5 C76,61 62.5,74.5 54,82 C45.5,74.5 32,61 32,39.5 C32,28.8 43,25 54,25 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="32"
+                android:startY="25"
+                android:endX="76"
+                android:endY="82"
+                android:type="linear">
+                <item android:color="#FF10B981" android:offset="0.0" />
+                <item android:color="#FF06B6D4" android:offset="0.6" />
+                <item android:color="#FF3B82F6" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Inner Dark Shield Plate -->
+    <path
+        android:pathData="M54,29 C62.5,29 71,32 71,41 C71,58 59.5,69.5 54,76 C48.5,69.5 37,58 37,41 C37,32 45.5,29 54,29 Z"
+        android:fillColor="#FF0F172A" />
+
+    <!-- Unlocked SSL Pinning Shackle (Top Part of Lock) -->
+    <path
+        android:pathData="M54,39 C49.6,39 46,42.6 46,47 L46,50 L50,50 L50,47 C50,44.8 51.8,43 54,43 C56.2,43 58,44.8 58,47 L58,48 L62,48 L62,47 C62,42.6 58.4,39 54,39 Z"
+        android:fillColor="#FF38BDF8" />
+
+    <!-- Unlocked Lock Body (Center Emblem) -->
+    <path
+        android:pathData="M44,50 C42.9,50 42,50.9 42,52 L42,64 C42,65.1 42.9,66 44,66 L64,66 C65.1,66 66,65.1 66,64 L66,52 C66,50.9 65.1,50 64,50 L44,50 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="42"
+                android:startY="50"
+                android:endX="66"
+                android:endY="66"
+                android:type="linear">
+                <item android:color="#FF34D399" android:offset="0.0" />
+                <item android:color="#FF10B981" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Keyhole Slash / Lightning Bypass -->
+    <path
+        android:pathData="M55,54 L51,60 L54,60 L53,64 L57,58 L54,58 Z"
+        android:fillColor="#FF0F172A" />
+
+</vector>
