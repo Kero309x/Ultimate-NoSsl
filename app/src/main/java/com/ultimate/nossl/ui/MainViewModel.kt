@@ -1,4 +1,3 @@
-
 package com.ultimate.nossl.ui
 
 import android.app.Application
@@ -9,10 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.ultimate.nossl.data.AppDatabase
 import com.ultimate.nossl.data.HookLogEntity
 import com.ultimate.nossl.data.TargetAppEntity
+import com.ultimate.nossl.utils.ModuleStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
@@ -49,7 +48,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val targetApps: StateFlow<List<TargetAppEntity>> = targetDao.getAllTargets()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _isXposedActive = MutableStateFlow(true)
+    private val _isXposedActive = MutableStateFlow(false)
     val isXposedActive: StateFlow<Boolean> = _isXposedActive.asStateFlow()
 
     private val _testResults = MutableStateFlow<List<TestResult>>(emptyList())
@@ -65,7 +64,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             HookModuleInfo("okhttp2", "OkHttp v2 Legacy Pinner", "HTTP Clients", "Hooks legacy com.squareup.okhttp.CertificatePinner", "OkHttp 2.x"),
             HookModuleInfo("webview", "WebView SSL Error Bypass", "Web Engine", "Forces SslErrorHandler.proceed() on SSL validation failures", "Android WebKit"),
             HookModuleInfo("flutter", "Flutter & Dart SSL Interceptor", "Cross-Platform", "Hooks FlutterJNI native bridge and Dart SecurityContext", "Flutter Engine"),
-            HookModuleInfo("react_native", "React Native OkHttp Bridge", "Cross-Platform", "Hooks NetworkingModule and OkHttpClientProvider", "React Native"),
+            HookModuleInfo("react_native", "React Native OkHttp & Hermes Engine", "Cross-Platform", "Hooks NetworkingModule, Hermes JS executor, JSBundleLoader, and OkHttpClientProvider", "React Native / Hermes"),
             HookModuleInfo("cronet", "Chromium Cronet Engine", "Native Engine", "Intercepts CronetEngine.Builder and Public Key Pinning", "Cronet / Google Play Services"),
             HookModuleInfo("volley", "Android Volley HurlStack", "HTTP Clients", "Injects unsafe SSLSocketFactory into Volley HurlStack", "Volley"),
             HookModuleInfo("apache", "Apache HTTP Client", "Legacy HTTP", "Bypasses AbstractVerifier and StrictHostnameVerifier", "Apache HttpClient"),
@@ -90,26 +89,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun isModuleActive(): Boolean {
-        return true
+        return ModuleStatus.isModuleActive()
     }
 
     private fun checkXposedStatus() {
-        _isXposedActive.value = true
+        _isXposedActive.value = isModuleActive()
     }
 
     private fun seedInitialData() {
         viewModelScope.launch(Dispatchers.IO) {
-            // Add initial sample log
             logDao.insertLog(
                 HookLogEntity(
                     tag = "ULTIMATE",
                     packageName = "com.ultimate.nossl",
-                    message = "Universal SSL Pinning Bypass Engine loaded successfully. 20 hooks active.",
+                    message = "Universal SSL Pinning Bypass Engine initialized.",
                     level = "INFO"
                 )
             )
-
-            // Populate installed apps if target table empty
             val pm = getApplication<Application>().packageManager
             val packages = pm.getInstalledPackages(PackageManager.GET_META_DATA)
             packages.take(25).forEach { pkg ->
@@ -151,28 +147,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _isTesting.value = true
             val startTime = System.currentTimeMillis()
             try {
-                // Trust all certs test
                 val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
                     override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>?, authType: String?) {}
                     override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>?, authType: String?) {}
                     override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
                 })
-
                 val sc = SSLContext.getInstance("SSL")
                 sc.init(null, trustAllCerts, java.security.SecureRandom())
                 HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
                 HttpsURLConnection.setDefaultHostnameVerifier { _, _ -> true }
-
                 val url = URL(targetUrl)
                 val connection = url.openConnection() as HttpURLConnection
                 connection.connectTimeout = 8000
                 connection.readTimeout = 8000
                 connection.requestMethod = "GET"
                 connection.connect()
-
                 val code = connection.responseCode
                 val elapsed = System.currentTimeMillis() - startTime
-
                 val result = TestResult(
                     url = targetUrl,
                     isSuccess = code in 200..399,
@@ -180,9 +171,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     message = "Connection Succeeded (HTTP $code) - SSL Pinning Bypassed",
                     timeMs = elapsed
                 )
-
                 _testResults.value = listOf(result) + _testResults.value
-
                 logDao.insertLog(
                     HookLogEntity(
                         tag = "TEST_LAB",
@@ -191,7 +180,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         level = if (code in 200..399) "HOOK" else "WARN"
                     )
                 )
-
             } catch (e: Throwable) {
                 val elapsed = System.currentTimeMillis() - startTime
                 val result = TestResult(
@@ -202,7 +190,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     timeMs = elapsed
                 )
                 _testResults.value = listOf(result) + _testResults.value
-
                 logDao.insertLog(
                     HookLogEntity(
                         tag = "TEST_LAB",

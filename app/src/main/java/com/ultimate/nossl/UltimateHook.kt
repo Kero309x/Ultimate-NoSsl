@@ -1,18 +1,17 @@
 package com.ultimate.nossl
 
-import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodReplacement
+import de.robv.android.xposed.XposedHelpers
+import de.robv.android.xposed.callbacks.XC_LoadPackage
 import com.ultimate.nossl.core.*
 import com.ultimate.nossl.hooks.*
 import com.ultimate.nossl.utils.Logger
-import de.robv.android.xposed.IXposedHookLoadPackage
-import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage
 
 class UltimateHook : IXposedHookLoadPackage {
-    
+
     private external fun initNative()
-    
+
     companion object {
         @JvmStatic
         external fun scanFlutterNative()
@@ -27,13 +26,19 @@ class UltimateHook : IXposedHookLoadPackage {
                     "isModuleActive",
                     XC_MethodReplacement.returnConstant(true)
                 )
+                XposedHelpers.findAndHookMethod(
+                    "com.ultimate.nossl.utils.ModuleStatus",
+                    lpparam.classLoader,
+                    "isModuleActive",
+                    XC_MethodReplacement.returnConstant(true)
+                )
                 Logger.i("✅ Self-hooked isModuleActive() -> true")
             } catch (e: Throwable) {
                 Logger.e("Failed to self-hook isModuleActive: ${e.message}")
             }
             return
         }
-        
+
         Logger.i("🚀 ULTIMATE MODULE LOADING: ${lpparam.packageName}")
 
         // Initialize Native hooks (ShadowHook)
@@ -58,6 +63,7 @@ class UltimateHook : IXposedHookLoadPackage {
 
         // Phase 1: System-level
         safeInit("SystemSSL") { SystemSSLHook().init(lpparam) }
+        safeInit("GMS") { GmsHook().init(lpparam) }
 
         // Phase 2: Native layer
         safeInit("NativeCrypto") { NativeCryptoHook().init(lpparam) }
@@ -68,7 +74,7 @@ class UltimateHook : IXposedHookLoadPackage {
         safeInit("OkHttp2") { OkHttp2Hook().init(lpparam) }
         safeInit("Volley") { VolleyHook().init(lpparam) }
         safeInit("ApacheHttp") { ApacheHttpHook().init(lpparam) }
-        safeInit("Cronet") { CronetHook().init(lpparam) }    
+        safeInit("Cronet") { CronetHook().init(lpparam) }
         safeInit("ChromiumHook") { ChromiumHook().init(lpparam) }
 
         // Phase 4: Web
@@ -90,11 +96,9 @@ class UltimateHook : IXposedHookLoadPackage {
         // Phase 7: Anti-detection & utilities
         safeInit("ProxyDetection") { ProxyDetectionHook().init(lpparam) }
         safeInit("AntiDetection") { AntiDetectionHook().init(lpparam) }
-        // safeInit("FileHook")
+        safeInit("FileHook") { FileHook().init(lpparam) }
 
         // Phase 8: Dynamic & generic (last)
-        // safeInit("ConstructorWatcher") { ConstructorWatcher().init(lpparam) }
-        // safeInit("ClassScanner") { ClassScanner().init(lpparam) }
         safeInit("CustomPinning") { CustomPinningHook().init(lpparam) }
         safeInit("GenericHook") { GenericHook().init(lpparam) }
 

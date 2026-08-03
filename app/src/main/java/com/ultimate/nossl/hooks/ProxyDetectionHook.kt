@@ -13,6 +13,8 @@ class ProxyDetectionHook {
         // hookSystemProxyProperties breaks actual system proxy routing (OkHttp uses it).
         // Removed to fix React Native / OkHttp traffic not appearing in proxy tools like Charles/Burp.
         hookNetworkCapabilities(lpparam)
+        hookSystemProperties(lpparam)
+        hookNetworkInterface(lpparam)
     }
 
     private fun hookNetworkCapabilities(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -32,6 +34,40 @@ class ProxyDetectionHook {
                     }
                 }
             })
+        } catch (e: Throwable) { }
+    }
+
+    private fun hookSystemProperties(lpparam: XC_LoadPackage.LoadPackageParam) {
+        try {
+            val systemClass = XposedHelpers.findClassIfExists("java.lang.System", lpparam.classLoader)
+            if (systemClass != null) {
+                XposedBridge.hookAllMethods(systemClass, "getProperty", object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        val key = param.args.firstOrNull()?.toString() ?: return
+                        if (key.contains("proxy")) {
+                            Logger.i("Anti-Proxy bypass: getProperty($key) -> null")
+                            param.result = null
+                        }
+                    }
+                })
+            }
+        } catch (e: Throwable) { }
+    }
+
+    private fun hookNetworkInterface(lpparam: XC_LoadPackage.LoadPackageParam) {
+        try {
+            val netInterfaceClass = XposedHelpers.findClassIfExists("java.net.NetworkInterface", lpparam.classLoader)
+            if (netInterfaceClass != null) {
+                XposedBridge.hookAllMethods(netInterfaceClass, "getName", object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        val name = param.result as? String ?: return
+                        if (name.contains("tun") || name.contains("ppp")) {
+                            Logger.i("Anti-VPN bypass: NetworkInterface.getName() -> eth0")
+                            param.result = "eth0"
+                        }
+                    }
+                })
+            }
         } catch (e: Throwable) { }
     }
 }

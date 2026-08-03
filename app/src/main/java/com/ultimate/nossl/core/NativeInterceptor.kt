@@ -37,8 +37,8 @@ class NativeInterceptor {
             XposedBridge.hookAllMethods(Runtime::class.java, "load0", object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     val path = param.args[1] as? String ?: return
-                    if (path.contains("hermes") || path.contains("react") || path.contains("flutter")) {
-                        Logger.native("Native path loaded: $path")
+                    if (path.contains("libreactnative.so") || path.contains("libhermes.so") || path.contains("libflutter.so")) {
+                        Logger.native("Native framework loaded: ${path.substringAfterLast('/')}")
                         if (path.contains("flutter")) {
                             Logger.native("Flutter path loaded, triggering native memory scan...")
                             try {
