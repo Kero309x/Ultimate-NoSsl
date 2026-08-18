@@ -75,5 +75,6 @@ dependencies {
   implementation(libs.okhttp)
   implementation(libs.shadowhook)
   compileOnly("de.robv.android.xposed:api:82")
+  testImplementation(libs.junit)
   debugImplementation(libs.androidx.compose.ui.tooling)
 }
