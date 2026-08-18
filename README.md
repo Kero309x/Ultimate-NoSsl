@@ -1,99 +1,156 @@
-# 🔓 Ultimate-NoSSL: Universal Android SSL Pinning Bypass Engine
+<div align="center">
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Android-7.0%20to%2015-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
-  <img src="https://img.shields.io/badge/Architecture-Multi--ABI%20(ARM64%20|%20ARM32%20|%20x86__64)-blue?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Xposed-LSPosed%20|%20EdXposed-purple?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" />
-</p>
+# 🔓 Ultimate-NoSSL
+### *Universal Android SSL/TLS Pinning Bypass & Network Inspection Engine*
 
-**Ultimate-NoSSL** is a high-performance, universal Android Xposed module engineered to bypass SSL/TLS certificate pinning, custom trust managers, and certificate verification mechanisms across all layers of the Android OS. 
+[![Android](https://img.shields.io/badge/Android-7.0%20to%2015%20(API%2024--35)-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com)
+[![Architecture](https://img.shields.io/badge/Architecture-ARM64%20|%20ARM32%20|%20x86__64-007ACC?style=for-the-badge&logo=arm&logoColor=white)](https://github.com/Kero309x/Ultimate-NoSsl)
+[![Xposed](https://img.shields.io/badge/Xposed-LSPosed%20%2F%20EdXposed-8A2BE2?style=for-the-badge)](https://github.com/LSPosed/LSPosed)
+[![CI/CD](https://img.shields.io/badge/Build-GitHub%20Actions%20Passing-success?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/Kero309x/Ultimate-NoSsl/actions)
+[![License](https://img.shields.io/badge/License-MIT-orange?style=for-the-badge)](LICENSE)
 
-Designed specifically for security researchers, reverse engineers, and mobile penetration testers, it ensures transparent traffic inspection in proxy tools like **Burp Suite, Charles Proxy, mitmproxy, and Fiddler** without triggering connection drops or application crashes.
+<br/>
+
+[📖 Overview](#-overview) •
+[🏛️ Architecture](#-system-architecture) •
+[⚡ Key Features](#-key-features) •
+[📊 Supported Matrix](#-supported-matrix) •
+[🚀 Quick Start](#-quick-start) •
+[🛠️ Build Guide](#️-build-guide) •
+[⚖️ Disclaimer](#️-disclaimer)
 
 ---
 
-## 🌟 Key Architecture & Capabilities
+</div>
+
+## 📖 Overview
+
+**Ultimate-NoSSL** is an enterprise-grade, universal Android Xposed framework module engineered to neutralize all forms of SSL/TLS certificate pinning, custom certificate validation, and anti-proxy barriers in modern Android applications.
+
+Unlike traditional pinning bypass tools that rely exclusively on standard Java reflection, **Ultimate-NoSSL** operates across a **hybrid multi-layer engine** combining low-level Native C++ memory signature patching, dynamic `dlopen` interception, and extended Java security managers.
+
+### 🎯 Primary Use Cases
+* **Mobile Penetration Testing & API Auditing**: Transparently intercept encrypted HTTPS/WSS/gRPC traffic inside **Burp Suite, Charles Proxy, mitmproxy, and Fiddler**.
+* **Reverse Engineering Research**: Inspect internal endpoints of obfuscated apps, Flutter binaries, and React Native bundles without triggering `SSLHandshakeException` or connection aborts.
+* **Network Reliability**: Prevent crash loops on OEM ROMs (Samsung OneUI, Xiaomi HyperOS, OnePlus OxygenOS) via LRU-cached safe reflection.
+
+---
+
+## 🏛️ System Architecture
 
 ```mermaid
-flowchart LR
-    App[Target Android App] --> Core{Ultimate-NoSSL}
-    Core --> N1[Native C++ Engine\nShadowHook / Multi-ABI]
-    Core --> J1[System SSL & Conscrypt\nX509ExtendedTrustManager]
-    Core --> H1[HTTP Clients & Protocols\nOkHttp / Ktor / gRPC / WSS]
-    Core --> C1[Cross-Platform Engines\nFlutter 3.x / React Native / Unity]
-    Core --> S1[Security SDKs\nTrustKit / AppAuth / Tink]
-    Core --> P1[Burp / Charles Proxy]
+graph TD
+    classDef native fill:#1E1E2E,stroke:#89B4FA,stroke-width:2px,color:#CDD6F4;
+    classDef framework fill:#181825,stroke:#A6E3A1,stroke-width:2px,color:#CDD6F4;
+    classDef network fill:#11111B,stroke:#F9E2AF,stroke-width:2px,color:#CDD6F4;
+    classDef proxy fill:#313244,stroke:#F38BA8,stroke-width:2px,color:#CDD6F4;
+
+    App["📱 Target Application (Process Fork)"] --> Zygote["Zygote / LSPosed Dispatcher"]
+    
+    subgraph NativeLayer ["⚡ Phase 1: Native C++ Engine (libnossl.so)"]
+        Zygote --> Native["ShadowHook & W^X Memory Patcher"]:::native
+        Native --> Flutter["Flutter 3.x+ AOT Memory Scanner"]:::native
+        Native --> Boring["BoringSSL & OpenSSL Trampolines"]:::native
+        Native --> LateLoad["Dynamic dlopen Hook (Liger / Proxygen / Cronet)"]:::native
+    end
+
+    subgraph FrameworkLayer ["🛡️ Phase 2: System & Framework Security"]
+        Zygote --> SysSSL["SSLFactory (X509ExtendedTrustManager)"]:::framework
+        SysSSL --> Conscrypt["Conscrypt TrustManagerImpl Neutralizer"]:::framework
+        SysSSL --> NSC["NetworkSecurityConfig XML Bypass"]:::framework
+        SysSSL --> DummyCert["CertSynthesizer (Dynamic X.509 Chaining)"]:::framework
+    end
+
+    subgraph ProtocolLayer ["🌐 Phase 3: HTTP Clients & High-Level Protocols"]
+        Zygote --> Clients["Protocol Dispatcher"]:::network
+        Clients --> OkHttp["OkHttp 2.x, 3.x, 4.x & CertificatePinner"]:::network
+        Clients --> Ktor["Ktor HTTP Client (KMP OkHttp/CIO/Android)"]:::network
+        Clients --> Grpc["gRPC Channels (OkHttp / Netty)"]:::network
+        Clients --> WS["WebSockets Secure (WSS: Java-WS / nv-ws)"]:::network
+        Clients --> Modern["Retrofit.Builder & FuelManager"]:::network
+        Clients --> WebViews["WebView & Cordova (SslErrorHandler)"]:::network
+    end
+
+    NativeLayer --> Output["✅ Decrypted Cleartext Traffic"]:::proxy
+    FrameworkLayer --> Output
+    ProtocolLayer --> Output
+    Output --> ProxyServer["🔍 Proxy: Burp Suite / Charles / mitmproxy"]:::proxy
 ```
 
-### 1. ⚡ Multi-ABI Native Engine (`nossl.cpp`)
-- **Dynamic Memory Signature Scanner**: Scans executable memory maps (`/proc/self/maps`) to locate and patch un-exported verification routines in `libflutter.so`, `libssl.so`, `libcrypto.so`, and `libcronet.so`.
-- **Flutter 3.x+ Support**: Advanced byte pattern matching covering Flutter 2.x, 3.0 up to 3.24+ (`session_verify_cert_chain`, `ssl_crypto_x509_session_verify_cert_chain`).
-- **Dynamic `dlopen` Interception**: Captures late-loaded shared libraries (`libliger.so`, `libproxygen.so`, `libfb.so`, `libfizz.so`) and deploys native hooks immediately upon load.
-- **Strict Memory Safety**: Compliant with Android 10-15 $W^{\wedge}X$ memory protection and dual page size alignment (4KB and 16KB).
+---
 
-### 2. 🛡️ System & Framework Layer
-- **Universal TrustAll Engine (`SSLFactory.kt`)**: Injects extended `X509ExtendedTrustManager` implementations supporting modern Android Conscrypt, Chromium, and Apache Harmony signatures.
-- **Dynamic Dummy Certificate Synthesizer (`CertSynthesizer.kt`)**: Synthesizes valid X.509 certificate chains in-memory to prevent `NullPointerException` crashes in strict banking/financial apps.
-- **Network Security Config Bypass**: Neutralizes XML PinSets on Android 7.0+ (API 24+).
+## ⚡ Key Features
 
-### 3. 🌐 Modern HTTP Clients & Protocols
-- **OkHttp (v2, v3, v4)**: Empties pinned key hashes, disables `CertificatePinner.check()`, and neutralizes `CertificateChainCleaner`.
-- **Kotlin Multiplatform Ktor (`KtorHook.kt`)**: Intercepts `OkHttpConfig`, `AndroidEngineConfig`, and `CIOEngineConfig`.
-- **gRPC Channels (`GrpcHook.kt`)**: Injects unsafe SSL configurations into `OkHttpChannelBuilder`, `NettyChannelBuilder`, and `CronetChannelBuilder`.
-- **WebSockets Secure (`WebSocketHook.kt`)**: Hooks `Java-WebSocket` and `nv-websocket-client` for `wss://` encrypted streams.
-- **Retrofit & Fuel (`ModernHttpHook.kt`)**: Injects unsafe sockets into `Retrofit.Builder` and `FuelManager`.
-
-### 4. 🧩 Cross-Platform & Hybrid Support
-- **Flutter / Dart Engine**: Native AOT memory patcher for Dart VM SSL verification.
-- **React Native / Hermes**: Injects `OkHttpClientProvider` and `CustomClientBuilderFactory`.
-- **WebView / Cordova / Ionic**: Auto-proceeds on SSL validation errors (`SslErrorHandler.proceed()`).
-- **Xamarin (.NET Mono)** & **Unity 3D WebRequest**.
-- **Specialized Security SDKs**: Bypasses `TrustKit Android`, `OpenID AppAuth`, `AppClarity`, and `Google Tink`.
+<table>
+  <tr>
+    <td width="50%">
+      <h3>🚀 Native Memory Patching</h3>
+      <ul>
+        <li><b>Multi-ABI Support</b>: ARM64, ARM32 (Thumb-2), and x86/x86_64.</li>
+        <li><b>W^X Memory Safety</b>: Dual-permission page flipping (<code>mprotect</code>) with I-Cache purging.</li>
+        <li><b>Flutter 3.x+ Direct Scanner</b>: Byte-signature scanning for Dart VM stripped binaries (<code>session_verify_cert_chain</code>).</li>
+        <li><b>Late-Load Interception</b>: Captures runtime libraries loaded via <code>dlopen</code> (Meta Liger, Proxygen, Fizz).</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>🛡️ Resilience & Safety</h3>
+      <ul>
+        <li><b>SafeReflection Cache</b>: <code>LruCache</code> layer for high-speed reflective calls without GC pressure.</li>
+        <li><b>Synthetic X.509 Chains</b>: Generates valid in-memory certificate structures to avoid <code>NullPointerException</code> in banking apps.</li>
+        <li><b>Anti-Proxy Compatibility</b>: Neutralizes app-level VPN checks while preserving upstream proxy routing.</li>
+        <li><b>Room DB Log Rotation</b>: Indexed log database with automated pruning to avoid memory bloated logs.</li>
+      </ul>
+    </td>
+  </tr>
+</table>
 
 ---
 
-## 📊 Supported Frameworks & Matrix
+## 📊 Supported Matrix
 
-| Framework / Library | Interception Level | Supported Versions |
-|:---|:---:|:---:|
-| **Standard Java / Android SSL** | Framework / Reflection | Android 7.0 - 15 (API 24 - 35) |
-| **Conscrypt / BoringSSL** | Native / Java | Android Default & GMS Bundled |
-| **OkHttp** | Bytecode Hook | OkHttp 2.x, 3.x, 4.x |
-| **Flutter / Dart VM** | Native Memory Scanner | Flutter 1.x, 2.x, 3.0 - 3.24+ |
-| **React Native (Hermes / JSC)** | Java / Bridge | React Native 0.60+ |
-| **Ktor HTTP Client** | Framework (KMP) | Ktor 1.x, 2.x, 3.x |
-| **gRPC Channels** | Java / Netty | gRPC Java 1.x+ |
-| **WebSocket (WSS)** | Framework | Java-WebSocket / nv-ws |
-| **Chromium Cronet** | Native / Java | Modern Google Play Services |
-| **TrustKit Android** | SDK Hook | All Versions |
-| **AppAuth Android** | SDK Hook | OpenID AppAuth 0.7+ |
-| **Meta Liger / Proxygen / Fizz** | Native C++ Hook | Facebook, Instagram, Messenger |
-
----
-
-## 🚀 Installation & Setup
-
-1. **Prerequisites**:
-   - Rooted Android device running Android 7.0+ (Nougat through 15).
-   - [LSPosed](https://github.com/LSPosed/LSPosed) or [EdXposed] framework installed and active.
-2. **Installation**:
-   - Clone and build the project, or download the latest Release APK.
-   - Install the APK on your device.
-3. **Activation in LSPosed**:
-   - Open **LSPosed Manager**.
-   - Navigate to **Modules** $\rightarrow$ Enable **Ultimate-NoSSL**.
-   - Select your target applications in the scope list.
-   - Force-stop and restart the target application.
-4. **Proxy Configuration**:
-   - Set up your HTTP/HTTPS proxy (e.g., Burp Suite listening on port 8080).
-   - Configure Wi-Fi proxy settings on the device.
-   - Inspect all decrypted HTTPS traffic effortlessly.
+| Layer / Technology | Supported Target Libraries | Interception Method | Status |
+|:---|:---|:---:|:---:|
+| **Android Framework** | `TrustManagerImpl`, `SSLContext`, `HttpsURLConnection` | Dynamic Reflection | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
+| **Android OS Policy** | Network Security Config (`network_security_config.xml`) | Memory Patch | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
+| **OkHttp Ecosystem** | `okhttp3.CertificatePinner`, `CertificateChainCleaner`, OkHttp 2.x | Bytecode Hook | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
+| **Cross-Platform: Flutter** | Flutter 1.x, 2.x, 3.0 up to 3.24+ (`libflutter.so`) | AOT Signature Scan | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
+| **Cross-Platform: React Native**| React Native 0.60+, Hermes Engine, `OkHttpClientProvider` | Java Bridge Hook | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
+| **Kotlin Multiplatform (KMP)**| Ktor Client (`OkHttpEngine`, `AndroidClientEngine`, `CIOEngine`) | Builder Injection | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
+| **gRPC Protocols** | `OkHttpChannelBuilder`, `NettyChannelBuilder`, `CronetChannelBuilder`| Channel Injection | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
+| **WebSocket (WSS)** | `org.java_websocket.client`, `com.neovisionaries.ws.client` | Socket Factory | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
+| **REST & Networking** | `Retrofit2`, `FuelManager`, `Volley HurlStack`, Apache HTTP | Client Injection | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
+| **Chromium Engine** | Cronet Engine, Chromium Custom Tabs, WebView SSL Errors | Native / Java Hook | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
+| **Security SDKs** | `TrustKit Android`, `OpenID AppAuth`, `AppClarity`, `Google Tink` | SDK Bypass | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
+| **Meta Engine** | `libliger.so`, `libproxygen.so`, `libfb.so`, `libfizz.so` | Native C++ Interceptor | ![Supported](https://img.shields.io/badge/Supported-Yes-brightgreen) |
 
 ---
 
-## 🛠️ Building from Source
+## 🚀 Quick Start
 
+### 1️⃣ Prerequisites
+* A rooted Android device or emulator (Android 7.0 to 15 / API 24 to 35).
+* [LSPosed Framework](https://github.com/LSPosed/LSPosed) (Zygisk or Riru release) installed and running.
+
+### 2️⃣ Installation & Configuration
+```bash
+# 1. Download or compile the latest Release APK
+adb install -r app-release.apk
+
+# 2. Open LSPosed Manager -> Modules -> Enable 'Ultimate-NoSSL'
+# 3. Check the target application(s) you wish to inspect
+# 4. Force-stop and re-open the target app
+adb shell am force-stop <target.package.name>
+```
+
+### 3️⃣ Proxy Setup (Burp Suite / Charles)
+1. Configure your device's Wi-Fi proxy to point to your computer's IP (e.g. `192.168.1.50:8080`).
+2. Start testing — **all HTTPS/WSS/gRPC requests will now be captured without certificate rejection**.
+
+---
+
+## 🛠️ Build Guide
+
+### Local Compilation via Gradle
 ```bash
 # Clone the repository
 git clone https://github.com/Kero309x/Ultimate-NoSsl.git
@@ -106,8 +163,32 @@ cd Ultimate-NoSsl
 ./gradlew assembleRelease
 ```
 
+The output APK will be generated at:
+`app/build/outputs/apk/release/app-release.apk`
+
+---
+
+## 🧪 Unit Testing Suite
+
+The repository includes a comprehensive JUnit test suite validating security components:
+* `SSLFactoryTest`: Verifies `TrustAllManager` signatures across Conscrypt and Chromium.
+* `CertSynthesizerTest`: Validates in-memory dynamic X.509 certificate generation.
+* `SafeReflectionTest`: Tests LRU caching and reflection safety under Android ART constraints.
+
+```bash
+./gradlew testDebugUnitTest
+```
+
 ---
 
 ## ⚖️ Disclaimer
 
-This tool is created strictly for **authorized security testing, API auditing, educational purposes, and reverse engineering research**. Users are solely responsible for ensuring compliance with applicable laws and permissions before analyzing third-party applications.
+> [!IMPORTANT]
+> This software is intended strictly for **authorized security assessments, penetration testing, educational research, and internal API analysis**. It must not be used for unauthorized access, malicious activities, or against systems without explicit permission. The authors assume no liability for misuse.
+
+---
+
+<div align="center">
+  <sub>Maintained with ❤️ by <a href="https://github.com/Kero309x">Kero309x</a></sub>
+</div>
+
