@@ -14,7 +14,6 @@ class OkHttpHook {
         hookCertificatePinner(lpparam)
         hookHostnameVerifier(lpparam)
         hookCertificateChainCleaner(lpparam)
-        hookRealConnection(lpparam)
         hookOkHttp3Builder(lpparam)
     }
 
@@ -28,7 +27,7 @@ class OkHttpHook {
                 val clazz = XposedHelpers.findClassIfExists(cls, lpparam.classLoader) ?: return@forEach
                 XposedBridge.hookAllMethods(clazz, "check", object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
-                        Logger.hook("OkHttp3", "CertificatePinner.check")
+                        Logger.hook("OkHttp3", "$cls.check bypassed")
                         param.result = null
                     }
                 })
@@ -37,7 +36,7 @@ class OkHttpHook {
                         return emptyList<Any>()
                     }
                 })
-            } catch (e: Throwable) { }
+            } catch (ignored: Throwable) { }
         }
     }
 
@@ -47,40 +46,28 @@ class OkHttpHook {
             if (verifierCls != null) {
                 XposedBridge.hookAllMethods(verifierCls, "verify", object : XC_MethodReplacement() {
                     override fun replaceHookedMethod(param: MethodHookParam): Any {
-                        Logger.hook("OkHttp3", "OkHostnameVerifier.verify")
+                        Logger.hook("OkHttp3", "OkHostnameVerifier.verify -> true")
                         return true
                     }
                 })
             }
-        } catch (e: Throwable) { }
+        } catch (ignored: Throwable) { }
     }
 
     private fun hookCertificateChainCleaner(lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
             val cleanerCls = XposedHelpers.findClassIfExists("okhttp3.internal.tls.CertificateChainCleaner", lpparam.classLoader)
             if (cleanerCls != null) {
-                XposedBridge.hookAllMethods(cleanerCls, "clean", object : XC_MethodReplacement() {
-                    override fun replaceHookedMethod(param: MethodHookParam): Any {
-                        Logger.hook("OkHttp3", "CertificateChainCleaner.clean")
-                        val list = param.args.firstOrNull() as? List<*> ?: emptyList<Any>()
-                        return list
+                XposedBridge.hookAllMethods(cleanerCls, "clean", object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        val chain = param.args.firstOrNull() as? List<*>
+                        if (chain != null) {
+                            param.result = chain
+                        }
                     }
                 })
             }
-        } catch (e: Throwable) { }
-    }
-
-    private fun hookRealConnection(lpparam: XC_LoadPackage.LoadPackageParam) {
-        try {
-            val connCls = XposedHelpers.findClassIfExists("okhttp3.internal.connection.RealConnection", lpparam.classLoader)
-            if (connCls != null) {
-                XposedBridge.hookAllMethods(connCls, "isEligible", object : XC_MethodReplacement() {
-                    override fun replaceHookedMethod(param: MethodHookParam): Any {
-                        return true
-                    }
-                })
-            }
-        } catch (e: Throwable) { }
+        } catch (ignored: Throwable) { }
     }
 
     private fun hookOkHttp3Builder(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -92,10 +79,19 @@ class OkHttpHook {
                     val builder = param.thisObject
                     try {
                         XposedHelpers.callMethod(builder, "sslSocketFactory", SSLFactory.UNSAFE_SOCKET_FACTORY, SSLFactory.TRUST_ALL)
-                    } catch (e: Throwable) { }
+                    } catch (ignored: Throwable) { }
                     try {
                         XposedHelpers.callMethod(builder, "hostnameVerifier", SSLFactory.UNSAFE_VERIFIER)
-                    } catch (e: Throwable) { }
+                    } catch (ignored: Throwable) { }
+                    try {
+                        val pinnerCls = XposedHelpers.findClassIfExists("okhttp3.CertificatePinner", lpparam.classLoader)
+                        if (pinnerCls != null) {
+                            val defaultPinner = XposedHelpers.getStaticObjectField(pinnerCls, "DEFAULT")
+                            if (defaultPinner != null) {
+                                XposedHelpers.callMethod(builder, "certificatePinner", defaultPinner)
+                            }
+                        }
+                    } catch (ignored: Throwable) { }
                 }
             })
 
@@ -106,12 +102,6 @@ class OkHttpHook {
                     }
                 }
             })
-
-            XposedBridge.hookAllMethods(builderCls, "certificatePinner", object : XC_MethodHook() {
-                override fun beforeHookedMethod(param: MethodHookParam) {
-                    // Do not set to null or risky defaults
-                }
-            })
             
             // Bypass app setting Proxy.NO_PROXY
             XposedBridge.hookAllMethods(builderCls, "proxy", object : XC_MethodHook() {
@@ -120,11 +110,11 @@ class OkHttpHook {
                         val proxy = param.args[0] as? java.net.Proxy
                         if (proxy == java.net.Proxy.NO_PROXY) {
                             Logger.i("OkHttp3: Blocked setting Proxy.NO_PROXY")
-                            param.args[0] = null // Reset to default ProxySelector
+                            param.args[0] = null // Reset to default system ProxySelector
                         }
                     }
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (ignored: Throwable) { }
     }
 }

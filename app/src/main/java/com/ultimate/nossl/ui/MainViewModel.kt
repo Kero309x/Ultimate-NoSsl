@@ -1,6 +1,7 @@
 package com.ultimate.nossl.ui
 
 import android.app.Application
+import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import androidx.lifecycle.AndroidViewModel
@@ -15,9 +16,6 @@ import kotlinx.coroutines.launch
 import java.net.HttpURLConnection
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 data class HookModuleInfo(
     val id: String,
@@ -41,6 +39,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getInstance(application)
     private val logDao = db.hookLogDao()
     private val targetDao = db.targetAppDao()
+    private val prefs = application.getSharedPreferences("ultimate_nossl_prefs", Context.MODE_PRIVATE)
 
     val logs: StateFlow<List<HookLogEntity>> = logDao.getAllLogs()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -59,27 +58,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _hooksList = MutableStateFlow<List<HookModuleInfo>>(
         listOf(
-            HookModuleInfo("sys_ssl", "System SSL / TrustManager", "System", "Bypasses default Java X509TrustManager and HttpsURLConnection checks", "Java / Android Framework"),
-            HookModuleInfo("okhttp3", "OkHttp v3 & v4 Pinner", "HTTP Clients", "Intercepts OkHttpClient CertificatePinner and HostnameVerifier", "OkHttp 3.x / 4.x"),
-            HookModuleInfo("okhttp2", "OkHttp v2 Legacy Pinner", "HTTP Clients", "Hooks legacy com.squareup.okhttp.CertificatePinner", "OkHttp 2.x"),
-            HookModuleInfo("webview", "WebView SSL Error Bypass", "Web Engine", "Forces SslErrorHandler.proceed() on SSL validation failures", "Android WebKit"),
-            HookModuleInfo("flutter", "Flutter & Dart SSL Interceptor", "Cross-Platform", "Hooks FlutterJNI native bridge and Dart SecurityContext", "Flutter Engine"),
-            HookModuleInfo("react_native", "React Native OkHttp & Hermes Engine", "Cross-Platform", "Hooks NetworkingModule, Hermes JS executor, JSBundleLoader, and OkHttpClientProvider", "React Native / Hermes"),
-            HookModuleInfo("cronet", "Chromium Cronet Engine", "Native Engine", "Intercepts CronetEngine.Builder and Public Key Pinning", "Cronet / Google Play Services"),
-            HookModuleInfo("volley", "Android Volley HurlStack", "HTTP Clients", "Injects unsafe SSLSocketFactory into Volley HurlStack", "Volley"),
-            HookModuleInfo("apache", "Apache HTTP Client", "Legacy HTTP", "Bypasses AbstractVerifier and StrictHostnameVerifier", "Apache HttpClient"),
-            HookModuleInfo("xamarin", "Xamarin / Mono HTTP", "Cross-Platform", "Intercepts Mono Runtime and X509TrustManagerExtensions", "Xamarin .NET"),
-            HookModuleInfo("unity", "Unity 3D WebRequest", "Gaming Engine", "Intercepts UnityPlayer CertificateHandler delegates", "Unity Engine"),
-            HookModuleInfo("cordova", "Apache Cordova / Ionic", "Hybrid Web", "Forces CordovaWebViewClient onReceivedSslError bypass", "Cordova / Ionic"),
-            HookModuleInfo("conscrypt", "Android Conscrypt Provider", "SSL Provider", "Neutralizes TrustManagerImpl.checkTrustedRecursive", "Conscrypt"),
-            HookModuleInfo("boringssl", "BoringSSL Native Engine", "Native SSL", "Hooks native SSL_CTX_set_custom_verify and SSL_do_handshake", "BoringSSL / OpenSSL"),
-            HookModuleInfo("net_config", "Network Security Config XML", "Android OS", "Neutralizes Android 7+ NetworkSecurityConfig PinSet", "NetworkSecurityConfig"),
-            HookModuleInfo("cert_transparency", "Certificate Transparency (CT)", "Security Policy", "Intercepts CTVerifier and CTLogStore checks", "CT Policy"),
-            HookModuleInfo("proxy_detect", "Anti-Proxy / Anti-VPN Detector", "Evasion", "Suppresses http.proxyHost and VPN network checks", "System Properties"),
-            HookModuleInfo("native_crypto", "Native Crypto (.so) Patch", "Native Layer", "Patches NativeCrypto.so and AbstractSessionContext", "Native Binaries"),
-            HookModuleInfo("custom_pinning", "Custom Pinning SDKs", "SDKs", "Intercepts TrustKit, AppClarity, and Tink pinning frameworks", "Custom SDKs"),
-            HookModuleInfo("generic_hook", "Generic Catch-All Hook", "Generic Engine", "Dynamic scanner for unknown X509TrustManager implementations", "Unknown / Obfuscated")
-        )
+            HookModuleInfo("SystemSSL", "System SSL / TrustManager", "System", "Bypasses default Java X509TrustManager and HttpsURLConnection checks", "Java / Android Framework"),
+            HookModuleInfo("OkHttp", "OkHttp v3 & v4 Pinner", "HTTP Clients", "Intercepts OkHttpClient CertificatePinner and HostnameVerifier", "OkHttp 3.x / 4.x"),
+            HookModuleInfo("OkHttp2", "OkHttp v2 Legacy Pinner", "HTTP Clients", "Hooks legacy com.squareup.okhttp.CertificatePinner", "OkHttp 2.x"),
+            HookModuleInfo("WebView", "WebView SSL Error Bypass", "Web Engine", "Forces SslErrorHandler.proceed() on SSL validation failures", "Android WebKit"),
+            HookModuleInfo("Flutter", "Flutter & Dart SSL Interceptor", "Cross-Platform", "Hooks FlutterJNI native bridge and Dart SecurityContext", "Flutter Engine"),
+            HookModuleInfo("ReactNative", "React Native OkHttp & Hermes Engine", "Cross-Platform", "Hooks NetworkingModule, Hermes JS executor, and OkHttpClientProvider", "React Native / Hermes"),
+            HookModuleInfo("Cronet", "Chromium Cronet Engine", "Native Engine", "Intercepts CronetEngine.Builder and Public Key Pinning", "Cronet / Google Play Services"),
+            HookModuleInfo("Volley", "Android Volley HurlStack", "HTTP Clients", "Injects unsafe SSLSocketFactory into Volley HurlStack", "Volley"),
+            HookModuleInfo("ApacheHttp", "Apache HTTP Client", "Legacy HTTP", "Bypasses AbstractVerifier and StrictHostnameVerifier", "Apache HttpClient"),
+            HookModuleInfo("Xamarin", "Xamarin / Mono HTTP", "Cross-Platform", "Intercepts Mono Runtime and X509TrustManagerExtensions", "Xamarin .NET"),
+            HookModuleInfo("Unity", "Unity 3D WebRequest", "Gaming Engine", "Intercepts UnityPlayer CertificateHandler delegates", "Unity Engine"),
+            HookModuleInfo("Cordova", "Apache Cordova / Ionic", "Hybrid Web", "Forces CordovaWebViewClient onReceivedSslError bypass", "Cordova / Ionic"),
+            HookModuleInfo("Conscrypt", "Android Conscrypt Provider", "SSL Provider", "Neutralizes TrustManagerImpl.checkTrustedRecursive", "Conscrypt"),
+            HookModuleInfo("BoringSSL", "BoringSSL Native Engine", "Native SSL", "Hooks native SSL_CTX_set_custom_verify and X509_verify_cert", "BoringSSL / OpenSSL"),
+            HookModuleInfo("NetworkSecurity", "Network Security Config XML", "Android OS", "Neutralizes Android 7+ NetworkSecurityConfig PinSet", "NetworkSecurityConfig"),
+            HookModuleInfo("CertificateTransparency", "Certificate Transparency (CT)", "Security Policy", "Intercepts CTVerifier and CTLogStore checks", "CT Policy"),
+            HookModuleInfo("ProxyDetection", "Anti-Proxy / Anti-VPN Detector", "Evasion", "Suppresses VPN network checks without breaking proxy routing", "System Properties"),
+            HookModuleInfo("NativeCrypto", "Native Crypto (.so) Patch", "Native Layer", "Patches NativeCrypto.so and AbstractSessionContext", "Native Binaries"),
+            HookModuleInfo("ModernHttp", "Retrofit & Fuel Managers", "HTTP Clients", "Injects unsafe SSL into Retrofit.Builder and FuelManager", "Retrofit / Fuel"),
+            HookModuleInfo("gRPC", "gRPC Channels (OkHttp / Netty)", "Protocols", "Intercepts OkHttpChannelBuilder and NettyChannelBuilder SSL factories", "gRPC Framework"),
+            HookModuleInfo("WebSocket", "WebSocket Secure (WSS)", "Protocols", "Intercepts Java-WebSocket and nv-websocket-client SSL factories", "WebSocket WSS"),
+            HookModuleInfo("Ktor", "Ktor HTTP Client (KMP)", "Protocols", "Injects unsafe SSL into Ktor OkHttp, CIO, and AndroidClientEngine", "Ktor Multiplatform"),
+            HookModuleInfo("GenericHook", "Generic Catch-All Hook", "Generic Engine", "Dynamic scanner for unknown X509TrustManager implementations", "Unknown / Obfuscated")
+        ).map { hook ->
+            val isEnabled = prefs.getBoolean("hook_${hook.id}", true)
+            hook.copy(isEnabled = isEnabled)
+        }
     )
     val hooksList: StateFlow<List<HookModuleInfo>> = _hooksList.asStateFlow()
 
@@ -111,11 +116,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             packages.take(25).forEach { pkg ->
                 val appName = pkg.applicationInfo?.loadLabel(pm)?.toString() ?: pkg.packageName
                 val isSys = (pkg.applicationInfo?.flags ?: 0) and ApplicationInfo.FLAG_SYSTEM != 0
+                val isEnabled = prefs.getBoolean("app_${pkg.packageName}", true)
                 targetDao.insertOrUpdate(
                     TargetAppEntity(
                         packageName = pkg.packageName,
                         appName = appName,
-                        isEnabled = true,
+                        isEnabled = isEnabled,
                         isSystemApp = isSys,
                         notes = if (isSys) "System Service" else "User Application"
                     )
@@ -126,13 +132,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleHook(id: String) {
         _hooksList.value = _hooksList.value.map {
-            if (it.id == id) it.copy(isEnabled = !it.isEnabled) else it
+            if (it.id == id) {
+                val newState = !it.isEnabled
+                prefs.edit().putBoolean("hook_$id", newState).apply()
+                it.copy(isEnabled = newState)
+            } else it
         }
     }
 
     fun toggleTargetApp(target: TargetAppEntity) {
         viewModelScope.launch(Dispatchers.IO) {
-            targetDao.insertOrUpdate(target.copy(isEnabled = !target.isEnabled))
+            val newState = !target.isEnabled
+            prefs.edit().putBoolean("app_${target.packageName}", newState).apply()
+            targetDao.insertOrUpdate(target.copy(isEnabled = newState))
         }
     }
 
@@ -147,19 +159,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _isTesting.value = true
             val startTime = System.currentTimeMillis()
             try {
-                val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
-                    override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>?, authType: String?) {}
-                    override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>?, authType: String?) {}
-                    override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
-                })
-                val sc = SSLContext.getInstance("SSL")
-                sc.init(null, trustAllCerts, java.security.SecureRandom())
-                HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
-                HttpsURLConnection.setDefaultHostnameVerifier { _, _ -> true }
                 val url = URL(targetUrl)
                 val connection = url.openConnection() as HttpURLConnection
-                connection.connectTimeout = 8000
-                connection.readTimeout = 8000
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
                 connection.requestMethod = "GET"
                 connection.connect()
                 val code = connection.responseCode

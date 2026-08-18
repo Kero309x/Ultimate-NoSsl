@@ -1,19 +1,20 @@
 
 package com.ultimate.nossl.hooks
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
-
-import com.ultimate.nossl.utils.Logger
-
-
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
+import com.ultimate.nossl.utils.Logger
+import com.ultimate.nossl.utils.SSLFactory
+import javax.net.ssl.HttpsURLConnection
 
 class CustomPinningHook {
 
     fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookTrustKit(lpparam)
+        hookAppAuth(lpparam)
         hookAppClarity(lpparam)
         hookTink(lpparam)
     }
@@ -27,14 +28,59 @@ class CustomPinningHook {
         classes.forEach { cls ->
             try {
                 val clazz = XposedHelpers.findClassIfExists(cls, lpparam.classLoader) ?: return@forEach
+
                 XposedBridge.hookAllMethods(clazz, "getTrustManager", object : XC_MethodReplacement() {
                     override fun replaceHookedMethod(param: MethodHookParam): Any {
-                        Logger.hook("TrustKit", "getTrustManager bypassed")
-                        return com.ultimate.nossl.utils.SSLFactory.TRUST_ALL
+                        Logger.hook("TrustKit", "$cls.getTrustManager bypassed")
+                        return SSLFactory.TRUST_ALL
                     }
                 })
-            } catch (e: Throwable) { }
+
+                XposedBridge.hookAllMethods(clazz, "getSSLSocketFactory", object : XC_MethodReplacement() {
+                    override fun replaceHookedMethod(param: MethodHookParam): Any {
+                        Logger.hook("TrustKit", "$cls.getSSLSocketFactory bypassed")
+                        return SSLFactory.UNSAFE_SOCKET_FACTORY
+                    }
+                })
+            } catch (ignored: Throwable) { }
         }
+
+        try {
+            val pinningTmCls = XposedHelpers.findClassIfExists(
+                "com.datatheorem.android.trustkit.pinning.PinningTrustManager",
+                lpparam.classLoader
+            )
+            if (pinningTmCls != null) {
+                XposedBridge.hookAllMethods(pinningTmCls, "checkServerTrusted", object : XC_MethodReplacement() {
+                    override fun replaceHookedMethod(param: MethodHookParam): Any? {
+                        Logger.hook("TrustKit", "PinningTrustManager.checkServerTrusted bypassed")
+                        return null
+                    }
+                })
+            }
+        } catch (ignored: Throwable) {}
+    }
+
+    private fun hookAppAuth(lpparam: XC_LoadPackage.LoadPackageParam) {
+        try {
+            val connectionBuilderCls = XposedHelpers.findClassIfExists(
+                "net.openid.appauth.connectivity.DefaultConnectionBuilder",
+                lpparam.classLoader
+            ) ?: return
+
+            XposedBridge.hookAllMethods(connectionBuilderCls, "openConnection", object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    val conn = param.result
+                    if (conn is HttpsURLConnection) {
+                        try {
+                            conn.sslSocketFactory = SSLFactory.UNSAFE_SOCKET_FACTORY
+                            conn.hostnameVerifier = SSLFactory.UNSAFE_VERIFIER
+                            Logger.hook("AppAuth", "DefaultConnectionBuilder.openConnection configured with unsafe SSL")
+                        } catch (ignored: Throwable) {}
+                    }
+                }
+            })
+        } catch (ignored: Throwable) { }
     }
 
     private fun hookAppClarity(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -50,7 +96,7 @@ class CustomPinningHook {
                     return null
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (ignored: Throwable) { }
     }
 
     private fun hookTink(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -62,9 +108,9 @@ class CustomPinningHook {
 
             XposedBridge.hookAllMethods(clazz, "getInstance", object : XC_MethodHook() {
                 override fun beforeHookedMethod(param: MethodHookParam) {
-                    Logger.hook("Tink", "EngineFactory.getInstance")
+                    Logger.hook("Tink", "EngineFactory.getInstance intercepted")
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (ignored: Throwable) { }
     }
 }

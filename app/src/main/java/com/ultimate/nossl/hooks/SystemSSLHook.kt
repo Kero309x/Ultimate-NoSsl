@@ -1,13 +1,11 @@
 
 package com.ultimate.nossl.hooks
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import de.robv.android.xposed.XposedBridge
-
 import com.ultimate.nossl.utils.Logger
 import com.ultimate.nossl.utils.SSLFactory
-
-
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import javax.net.ssl.HttpsURLConnection
@@ -29,10 +27,18 @@ class SystemSSLHook {
                 XposedBridge.hookAllMethods(cpv, "validate", object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         Logger.hook("SystemSSL", "CertPathValidator.validate bypassed")
+                        try {
+                            val resultClass = XposedHelpers.findClassIfExists("java.security.cert.PKIXCertPathValidatorResult", lpparam.classLoader)
+                            if (resultClass != null) {
+                                param.result = XposedHelpers.newInstance(resultClass, null, null, null, null)
+                            }
+                        } catch (ignored: Throwable) {
+                            param.result = null
+                        }
                     }
                 })
             }
-        } catch (e: Throwable) {}
+        } catch (ignored: Throwable) {}
     }
 
     private fun hookSSLContextInit(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -46,13 +52,13 @@ class SystemSSLHook {
                 java.security.SecureRandom::class.java,
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
-                        Logger.hook("SSLContext", "init override trustmanager")
+                        Logger.hook("SSLContext", "init override with TrustAllManager")
                         param.args[1] = SSLFactory.createEmptyTrustManagerArray()
                     }
                 }
             )
         } catch (e: Throwable) {
-            Logger.e("SSLContext init hook", e)
+            Logger.e("SSLContext init hook failed", e)
         }
 
         try {
@@ -60,7 +66,6 @@ class SystemSSLHook {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     if (param.result == null) {
                         param.result = SSLFactory.UNSAFE_SOCKET_FACTORY
-                        Logger.w("SSLContext.getSocketFactory was null, returning unsafe")
                     }
                 }
             })
@@ -68,10 +73,8 @@ class SystemSSLHook {
             XposedBridge.hookAllMethods(javax.net.ssl.SSLSocketFactory::class.java, "getDefault", object : XC_MethodReplacement() {
                 override fun replaceHookedMethod(param: MethodHookParam): Any = SSLFactory.UNSAFE_SOCKET_FACTORY
             })
-            Logger.hook("SystemSSL", "SSLSocketFactory.getDefault forced unsafe")
-        } catch (e: Throwable) {}
+        } catch (ignored: Throwable) {}
 
-        // Broad TrustManagerFactory hook
         try {
             val tmf = XposedHelpers.findClassIfExists("javax.net.ssl.TrustManagerFactory", lpparam.classLoader)
             if (tmf != null) {
@@ -80,17 +83,8 @@ class SystemSSLHook {
                         return SSLFactory.createEmptyTrustManagerArray()
                     }
                 })
-
-                XposedBridge.hookAllMethods(tmf, "init", object : XC_MethodHook() {
-                    override fun beforeHookedMethod(param: MethodHookParam) {
-                        Logger.hook("SystemSSL", "TrustManagerFactory.init bypassed")
-                        if (param.args.isNotEmpty()) {
-                            param.args[0] = null
-                        }
-                    }
-                })
             }
-        } catch (e: Throwable) {}
+        } catch (ignored: Throwable) {}
     }
 
     private fun hookHttpsURLConnection(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -111,9 +105,21 @@ class SystemSSLHook {
                 }
             })
 
-            Logger.i("HttpsURLConnection defaults replaced")
+            XposedBridge.hookAllMethods(HttpsURLConnection::class.java, "setSSLSocketFactory", object : XC_MethodHook() {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    param.args[0] = SSLFactory.UNSAFE_SOCKET_FACTORY
+                }
+            })
+
+            XposedBridge.hookAllMethods(HttpsURLConnection::class.java, "setHostnameVerifier", object : XC_MethodHook() {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    param.args[0] = SSLFactory.UNSAFE_VERIFIER
+                }
+            })
+
+            Logger.i("HttpsURLConnection default socket factory and verifier replaced")
         } catch (e: Throwable) {
-            Logger.e("HttpsURLConnection hook", e)
+            Logger.e("HttpsURLConnection hook failed", e)
         }
     }
 
@@ -130,7 +136,7 @@ class SystemSSLHook {
                     }
                 }
             )
-        } catch (e: Throwable) { }
+        } catch (ignored: Throwable) { }
     }
 }
 

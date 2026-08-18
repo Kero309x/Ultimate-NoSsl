@@ -10,8 +10,6 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage
 class CronetHook {
     fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookCronetBuilders(lpparam)
-        hookUrlRequest(lpparam)
-        hookExperimentalEngine(lpparam)
     }
 
     private fun hookCronetBuilders(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -25,67 +23,34 @@ class CronetHook {
         builders.forEach { clsName ->
             try {
                 val clazz = XposedHelpers.findClassIfExists(clsName, lpparam.classLoader) ?: return@forEach
+                
                 XposedBridge.hookAllMethods(clazz, "build", object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
-                        Logger.hook("Cronet", "$clsName.build")
+                        try {
+                            XposedHelpers.callMethod(param.thisObject, "enablePublicKeyPinningBypassForLocalTrustAnchors", true)
+                        } catch (ignored: Throwable) {}
                     }
                 })
+
                 XposedBridge.hookAllMethods(
                     clazz,
                     "enablePublicKeyPinningBypassForLocalTrustAnchors",
-                    object : XC_MethodReplacement() {
-                        override fun replaceHookedMethod(param: MethodHookParam): Any {
-                            return param.thisObject
+                    object : XC_MethodHook() {
+                        override fun beforeHookedMethod(param: MethodHookParam) {
+                            if (param.args.isNotEmpty()) {
+                                param.args[0] = true
+                            }
                         }
                     }
                 )
+
                 XposedBridge.hookAllMethods(clazz, "addPublicKeyPins", object : XC_MethodReplacement() {
                     override fun replaceHookedMethod(param: MethodHookParam): Any {
-                        Logger.hook("Cronet", "addPublicKeyPins blocked")
+                        Logger.hook("Cronet", "$clsName.addPublicKeyPins blocked")
                         return param.thisObject
                     }
                 })
-                XposedBridge.hookAllMethods(clazz, "enableNetworkQualityEstimator", object : XC_MethodReplacement() {
-                    override fun replaceHookedMethod(param: MethodHookParam): Any {
-                        return param.thisObject
-                    }
-                })
-                
-                // Add explicit bypass for HttpCache and other strict mode settings if possible
-                XposedBridge.hookAllMethods(clazz, "enableHttpCache", object : XC_MethodHook() {
-                    override fun beforeHookedMethod(param: MethodHookParam) {
-                        // param.args[0] = 0 // DISABLED
-                    }
-                })
-            } catch (e: Throwable) { }
+            } catch (ignored: Throwable) { }
         }
-    }
-
-    private fun hookUrlRequest(lpparam: XC_LoadPackage.LoadPackageParam) {
-        try {
-            val requestBuilder = XposedHelpers.findClassIfExists(
-                "org.chromium.net.UrlRequest\$Builder",
-                lpparam.classLoader
-            ) ?: return
-            XposedBridge.hookAllMethods(requestBuilder, "build", object : XC_MethodHook() {
-                override fun beforeHookedMethod(param: MethodHookParam) {
-                    Logger.hook("Cronet", "UrlRequest.Builder.build")
-                }
-            })
-        } catch (e: Throwable) { }
-    }
-
-    private fun hookExperimentalEngine(lpparam: XC_LoadPackage.LoadPackageParam) {
-        try {
-            val experimental = XposedHelpers.findClassIfExists(
-                "org.chromium.net.ExperimentalCronetEngine",
-                lpparam.classLoader
-            ) ?: return
-            XposedBridge.hookAllMethods(experimental, "newUrlRequestBuilder", object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    Logger.i("Cronet Experimental engine request created")
-                }
-            })
-        } catch (e: Throwable) { }
     }
 }

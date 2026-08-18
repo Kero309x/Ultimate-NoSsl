@@ -5,14 +5,14 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import com.ultimate.nossl.utils.Logger
+import java.io.File
 
 class AntiDetectionHook {
 
     fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookPackageManager(lpparam)
-        hookSystemProperties(lpparam)
-        hookDebug(lpparam)
-        hookBuildProperties(lpparam)
+        hookStackTraces(lpparam)
+        hookFileChecks(lpparam)
     }
 
     private fun hookPackageManager(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -39,50 +39,50 @@ class AntiDetectionHook {
                     }
                 })
             }
-        } catch (e: Throwable) {}
+        } catch (ignored: Throwable) {}
     }
 
-    private fun hookSystemProperties(lpparam: XC_LoadPackage.LoadPackageParam) {
+    private fun hookStackTraces(lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
-            val systemProperties = XposedHelpers.findClassIfExists("android.os.SystemProperties", lpparam.classLoader)
-            if (systemProperties != null) {
-                XposedBridge.hookAllMethods(systemProperties, "get", object : XC_MethodHook() {
+            XposedHelpers.findAndHookMethod(
+                Throwable::class.java,
+                "getStackTrace",
+                object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
-                        val key = param.args.firstOrNull()?.toString() ?: return
-                        if (key.contains("debug.fuzz") || key.contains("service.adb.tcp.port")) {
-                            param.result = ""
+                        val stack = param.result as? Array<StackTraceElement> ?: return
+                        val cleanStack = stack.filterNot { elem ->
+                            val name = elem.className
+                            name.contains("de.robv.android.xposed") ||
+                            name.contains("com.ultimate.nossl") ||
+                            name.contains("EdHooker") ||
+                            name.contains("LspHooker")
+                        }.toTypedArray()
+                        param.result = cleanStack
+                    }
+                }
+            )
+        } catch (ignored: Throwable) { }
+    }
+
+    private fun hookFileChecks(lpparam: XC_LoadPackage.LoadPackageParam) {
+        try {
+            XposedHelpers.findAndHookMethod(
+                File::class.java,
+                "exists",
+                object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        val file = param.thisObject as? File ?: return
+                        val path = file.absolutePath
+                        if (path.endsWith("/su") ||
+                            path.contains("/magisk") ||
+                            path.contains("busybox") ||
+                            path.contains("Superuser.apk") ||
+                            path.contains("xposed")) {
+                            param.result = false
                         }
                     }
-                })
-            }
-        } catch (e: Throwable) {}
-    }
-
-    private fun hookDebug(lpparam: XC_LoadPackage.LoadPackageParam) {
-        try {
-            val debugClass = XposedHelpers.findClassIfExists("android.os.Debug", lpparam.classLoader)
-            if (debugClass != null) {
-                XposedBridge.hookAllMethods(debugClass, "isDebuggerConnected", object : XC_MethodHook() {
-                    override fun afterHookedMethod(param: MethodHookParam) {
-                        param.result = false
-                    }
-                })
-                XposedBridge.hookAllMethods(debugClass, "waitingForDebugger", object : XC_MethodHook() {
-                    override fun afterHookedMethod(param: MethodHookParam) {
-                        param.result = false
-                    }
-                })
-            }
-        } catch (e: Throwable) {}
-    }
-
-    private fun hookBuildProperties(lpparam: XC_LoadPackage.LoadPackageParam) {
-        try {
-            val buildClass = XposedHelpers.findClassIfExists("android.os.Build", lpparam.classLoader)
-            if (buildClass != null) {
-                XposedHelpers.setStaticBooleanField(buildClass, "IS_EMULATOR", false)
-                XposedHelpers.setStaticObjectField(buildClass, "TAGS", "release-keys")
-            }
-        } catch (e: Throwable) {}
+                }
+            )
+        } catch (ignored: Throwable) { }
     }
 }

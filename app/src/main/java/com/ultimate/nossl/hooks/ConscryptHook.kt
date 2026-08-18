@@ -1,6 +1,5 @@
 package com.ultimate.nossl.hooks
 
-import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import com.ultimate.nossl.utils.Logger
 import de.robv.android.xposed.XposedBridge
@@ -23,19 +22,20 @@ class ConscryptHook {
         
         classNames.forEach { className ->
             try {
-                val clazz = Class.forName(className, false, lpparam.classLoader) ?: return@forEach
+                val clazz = XposedHelpers.findClassIfExists(className, lpparam.classLoader) ?: return@forEach
                 
-                // Hook all checkServerTrusted methods
                 XposedBridge.hookAllMethods(clazz, "checkServerTrusted", object : XC_MethodReplacement() {
                     override fun replaceHookedMethod(param: MethodHookParam): Any? {
                         Logger.hook("Conscrypt", "$className.checkServerTrusted bypassed")
                         val returnType = (param.method as? java.lang.reflect.Method)?.returnType
                         if (returnType == Void.TYPE) return null
-                        if (returnType == java.util.List::class.java) {
-                            val chain = param.args[0] as? Array<*>
-                            return if (chain != null) chain.toList() else emptyList<Any>()
+                        if (returnType != null && java.util.List::class.java.isAssignableFrom(returnType)) {
+                            val arg0 = param.args.firstOrNull()
+                            if (arg0 is Array<*>) return arg0.toList()
+                            if (arg0 is List<*>) return arg0
+                            return emptyList<Any>()
                         }
-                        return param.args[0]
+                        return param.args.firstOrNull()
                     }
                 })
 
@@ -43,24 +43,26 @@ class ConscryptHook {
                     override fun replaceHookedMethod(param: MethodHookParam): Any? {
                         val returnType = (param.method as? java.lang.reflect.Method)?.returnType
                         if (returnType == Void.TYPE) return null
-                        if (returnType == java.util.List::class.java) {
-                            val chain = param.args[0] as? Array<*>
-                            return if (chain != null) chain.toList() else emptyList<Any>()
+                        if (returnType != null && java.util.List::class.java.isAssignableFrom(returnType)) {
+                            val arg0 = param.args.firstOrNull()
+                            if (arg0 is Array<*>) return arg0.toList()
+                            if (arg0 is List<*>) return arg0
+                            return emptyList<Any>()
                         }
-                        return param.args[0]
+                        return param.args.firstOrNull()
                     }
                 })
                 
                 XposedBridge.hookAllMethods(clazz, "getTrustedChainForServer", object : XC_MethodReplacement() {
                     override fun replaceHookedMethod(param: MethodHookParam): Any {
-                        val chain = param.args[0] as? Array<*>
-                        return if (chain != null) chain.toList() else emptyList<Any>()
+                        val arg0 = param.args.firstOrNull()
+                        if (arg0 is Array<*>) return arg0.toList()
+                        if (arg0 is List<*>) return arg0
+                        return emptyList<Any>()
                     }
                 })
 
-            } catch (e: Throwable) { 
-                Logger.e("Failed to hook $className", e)
-            }
+            } catch (ignored: Throwable) { }
         }
     }
 
@@ -73,28 +75,26 @@ class ConscryptHook {
         
         classNames.forEach { className ->
             try {
-                val clazz = Class.forName(className, false, lpparam.classLoader) ?: return@forEach
+                val clazz = XposedHelpers.findClassIfExists(className, lpparam.classLoader) ?: return@forEach
                 
-                // checkTrustedRecursive
-                try {
-                    XposedBridge.hookAllMethods(clazz, "checkTrustedRecursive", object : XC_MethodReplacement() {
-                        override fun replaceHookedMethod(param: MethodHookParam): Any {
-                            val chain = param.args[0] as? Array<*>
-                            return if (chain != null) chain.toList() else emptyList<Any>()
-                        }
-                    })
-                } catch (e: Throwable) { }
+                XposedBridge.hookAllMethods(clazz, "checkTrustedRecursive", object : XC_MethodReplacement() {
+                    override fun replaceHookedMethod(param: MethodHookParam): Any {
+                        val arg0 = param.args.firstOrNull()
+                        if (arg0 is Array<*>) return arg0.toList()
+                        if (arg0 is List<*>) return arg0
+                        return emptyList<Any>()
+                    }
+                })
 
-                // verifyChain
-                try {
-                    XposedBridge.hookAllMethods(clazz, "verifyChain", object : XC_MethodReplacement() {
-                        override fun replaceHookedMethod(param: MethodHookParam): Any {
-                            val chain = param.args[0] as? Array<*>
-                            return if (chain != null) chain.toList() else emptyList<Any>()
-                        }
-                    })
-                } catch (e: Throwable) { }
-            } catch (e: Throwable) { }
+                XposedBridge.hookAllMethods(clazz, "verifyChain", object : XC_MethodReplacement() {
+                    override fun replaceHookedMethod(param: MethodHookParam): Any {
+                        val arg0 = param.args.firstOrNull()
+                        if (arg0 is Array<*>) return arg0.toList()
+                        if (arg0 is List<*>) return arg0
+                        return emptyList<Any>()
+                    }
+                })
+            } catch (ignored: Throwable) { }
         }
     }
 }

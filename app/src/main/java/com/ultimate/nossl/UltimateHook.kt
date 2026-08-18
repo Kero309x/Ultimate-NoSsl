@@ -34,32 +34,39 @@ class UltimateHook : IXposedHookLoadPackage {
                 )
                 Logger.i("✅ Self-hooked isModuleActive() -> true")
             } catch (e: Throwable) {
-                Logger.e("Failed to self-hook isModuleActive: ${e.message}")
+                Logger.e("Failed to self-hook isModuleActive", e)
             }
+            return
+        }
+
+        if (!ConfigManager.isTargetAppEnabled(lpparam.packageName)) {
             return
         }
 
         Logger.i("🚀 ULTIMATE MODULE LOADING: ${lpparam.packageName}")
 
-        // Initialize Native hooks (ShadowHook)
+        // Initialize Native hooks (ShadowHook & memory patching)
         try {
             System.loadLibrary("nossl")
             initNative()
-            Logger.hook("Native", "ShadowHook initialized for ${lpparam.packageName}")
+            Logger.hook("Native", "Native engine initialized for ${lpparam.packageName}")
         } catch (e: Throwable) {
-            Logger.w("Could not load native hooks: ${e.message}")
+            Logger.w("Native engine load skipped: ${e.message}")
         }
 
-        fun safeInit(name: String, action: () -> Unit) {
+        fun safeInit(hookId: String, action: () -> Unit) {
+            if (!ConfigManager.isHookEnabled(hookId)) return
             try {
                 action()
             } catch (t: Throwable) {
-                Logger.w("Hook $name skipped for ${lpparam.packageName}: ${t.message}")
+                Logger.w("Hook $hookId skipped for ${lpparam.packageName}: ${t.message}")
             }
         }
 
-        // Phase 0: Core engine
+        // Phase 0: Core engine & Dynamic Scanner
         safeInit("HookEngine") { HookEngine.init(lpparam) }
+        safeInit("ClassScanner") { ClassScanner().init(lpparam) }
+        safeInit("ConstructorWatcher") { ConstructorWatcher().init(lpparam) }
 
         // Phase 1: System-level
         safeInit("SystemSSL") { SystemSSLHook().init(lpparam) }
@@ -69,13 +76,17 @@ class UltimateHook : IXposedHookLoadPackage {
         safeInit("NativeCrypto") { NativeCryptoHook().init(lpparam) }
         safeInit("NativeInterceptor") { NativeInterceptor().init(lpparam) }
 
-        // Phase 3: Major HTTP clients
+        // Phase 3: Major HTTP clients & Protocols
         safeInit("OkHttp") { OkHttpHook().init(lpparam) }
         safeInit("OkHttp2") { OkHttp2Hook().init(lpparam) }
         safeInit("Volley") { VolleyHook().init(lpparam) }
         safeInit("ApacheHttp") { ApacheHttpHook().init(lpparam) }
+        safeInit("ModernHttp") { ModernHttpHook().init(lpparam) }
         safeInit("Cronet") { CronetHook().init(lpparam) }
         safeInit("ChromiumHook") { ChromiumHook().init(lpparam) }
+        safeInit("gRPC") { GrpcHook().init(lpparam) }
+        safeInit("WebSocket") { WebSocketHook().init(lpparam) }
+        safeInit("Ktor") { KtorHook().init(lpparam) }
 
         // Phase 4: Web
         safeInit("WebView") { WebViewHook().init(lpparam) }
@@ -96,9 +107,8 @@ class UltimateHook : IXposedHookLoadPackage {
         // Phase 7: Anti-detection & utilities
         safeInit("ProxyDetection") { ProxyDetectionHook().init(lpparam) }
         safeInit("AntiDetection") { AntiDetectionHook().init(lpparam) }
-        safeInit("FileHook") { FileHook().init(lpparam) }
 
-        // Phase 8: Dynamic & generic (last)
+        // Phase 8: Dynamic & generic
         safeInit("CustomPinning") { CustomPinningHook().init(lpparam) }
         safeInit("GenericHook") { GenericHook().init(lpparam) }
 
