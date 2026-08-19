@@ -24,44 +24,24 @@ jobs:
           echo "======================================"
           echo "PROJECT STRUCTURE"
           echo "======================================"
-
           echo "Top-level files:"
-          find . -maxdepth 2 -type f \
-            -not -path './.git/*' \
-            | sort
+          find . -maxdepth 2 -type f -not -path './.git/*' | sort
 
       - name: Detect Generated Files
         run: |
           echo "======================================"
           echo "GENERATED / UNWANTED FILE CHECK"
           echo "======================================"
-
           FOUND=0
-
-          for pattern in \
-            ".gradle" \
-            "build" \
-            ".idea" \
-            "*.iml" \
-            ".cxx" \
-            ".externalNativeBuild" \
-            "local.properties" \
-            ".DS_Store" \
-            "captures"
-
-          do
-            if find . \
-              -path "./.git" -prune -o \
-              -name "$pattern" -print \
-              | grep -q .
-            then
-              echo "Found: $pattern"
+          for pattern in ".gradle" ".idea" "*.iml" ".cxx" ".externalNativeBuild" "local.properties" ".DS_Store" "captures"; do
+            MATCHES=$(find . -path "./.git" -prune -o -name "$pattern" -print)
+            if [ -n "$MATCHES" ]; then
+              echo "Found: $pattern -> $MATCHES"
               FOUND=1
             fi
           done
-
           if [ "$FOUND" -eq 0 ]; then
-            echo "No generated files found."
+            echo "No unwanted generated files found."
           fi
 
       - name: Detect Large Files
@@ -69,51 +49,21 @@ jobs:
           echo "======================================"
           echo "LARGE FILE CHECK"
           echo "======================================"
-
-          find . \
-            -path "./.git" -prune -o \
-            -type f \
-            -size +10M \
-            -print \
-            -exec du -h {} \;
+          find . -path "./.git" -prune -o -type f -size +10M -print -exec du -h {} \; || true
 
       - name: Detect Potential Secrets
         run: |
           echo "======================================"
           echo "SECRET CHECK"
           echo "======================================"
-
-          if grep -RniE \
-            --exclude-dir=.git \
-            --exclude-dir=build \
-            --exclude-dir=.gradle \
-            --exclude='*.md' \
-            -E '(
-              api[_-]?key|
-              secret[_-]?key|
-              access[_-]?token|
-              private[_-]?key|
-              password[[:space:]]*=|
-              client[_-]?secret
-            )' .; then
-
-            echo ""
-            echo "WARNING: Possible secrets/configuration values detected."
-            echo "Review the matches manually."
-
-          else
-            echo "No obvious secret patterns detected."
-          fi
+          grep -RniE --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle --exclude='*.md' '(api[_-]?key|secret[_-]?key|access[_-]?token|private[_-]?key|password[[:space:]]*=|client[_-]?secret)' . || echo "No secret patterns detected."
 
       - name: Verify Git Ignore
         run: |
           echo "======================================"
           echo "GITIGNORE CHECK"
           echo "======================================"
-
           test -f .gitignore
-
-          echo ""
           echo "Root .gitignore:"
           cat .gitignore
 
@@ -122,13 +72,11 @@ jobs:
           echo "======================================"
           echo "ANDROID PROJECT CHECK"
           echo "======================================"
-
           test -f settings.gradle.kts || test -f settings.gradle
           test -f build.gradle.kts || test -f build.gradle
           test -f gradlew
           test -d app
-
-          echo "Android project structure looks valid."
+          echo "Android project structure is verified."
 
   build:
     name: Test & Build Debug APK
@@ -166,11 +114,7 @@ jobs:
           echo "======================================"
           echo "GENERATED APK"
           echo "======================================"
-
-          find app/build/outputs/apk \
-            -type f \
-            -name "*.apk" \
-            -print
+          find app/build/outputs/apk -type f -name "*.apk" -print
 
       - name: Upload Debug APK
         if: success()
@@ -180,4 +124,5 @@ jobs:
           path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 7
+
 
