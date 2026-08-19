@@ -17,7 +17,7 @@ roomCompiler = "2.6.1"
 kotlinxCoroutinesAndroid = "1.9.0"
 kotlinxCoroutinesCore = "1.9.0"
 okhttp = "4.12.0"
-shadowhook = "2.0.1"
+shadowhook = "1.0.10"
 xposed = "82"
 
 [libraries]

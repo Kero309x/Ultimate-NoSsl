@@ -8,6 +8,7 @@ plugins {
 android {
   namespace = "com.ultimate.nossl"
   compileSdk = 35
+  ndkVersion = "26.1.10909125"
 
   defaultConfig {
     applicationId = "com.ultimate.nossl"
@@ -20,7 +21,7 @@ android {
     externalNativeBuild {
       cmake {
         cppFlags("-std=c++17")
-        abiFilters("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        abiFilters("armeabi-v7a", "arm64-v8a")
       }
     }
   }
