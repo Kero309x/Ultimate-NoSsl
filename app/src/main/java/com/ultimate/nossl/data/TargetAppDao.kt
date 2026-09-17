@@ -9,6 +9,12 @@ interface TargetAppDao {
     @Query("SELECT * FROM target_apps ORDER BY appName ASC")
     fun getAllTargets(): Flow<List<TargetAppEntity>>
 
+    @Query("SELECT COUNT(*) FROM target_apps")
+    fun getTargetCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM target_apps WHERE isEnabled = 1")
+    fun getEnabledTargetCount(): Flow<Int>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(target: TargetAppEntity)
 

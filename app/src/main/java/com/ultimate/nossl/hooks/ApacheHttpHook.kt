@@ -30,9 +30,9 @@ class ApacheHttpHook {
                 Array<String>::class.java,
                 Boolean::class.javaPrimitiveType,
                 object : XC_MethodReplacement() {
-                    override fun replaceHookedMethod(param: MethodHookParam): Any? {
+                    override fun replaceHookedMethod(param: MethodHookParam): Any {
                         Logger.hook("ApacheHttp", "AbstractVerifier.verify")
-                        return null
+                        return true
                     }
                 }
             )

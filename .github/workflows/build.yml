@@ -1,4 +1,4 @@
-name: Cleanup & Build Ultimate-NoSSL
+name: Build Ultimate-NoSSL
 
 on:
   workflow_dispatch:
@@ -79,7 +79,7 @@ jobs:
           echo "Android project structure is verified."
 
   build:
-    name: Test & Build Debug APK
+    name: Build & Test
     runs-on: ubuntu-latest
     needs: audit
 
@@ -97,6 +97,10 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Setup NDK
+        run: |
+          echo "y" | sdkmanager "ndk;26.1.10909125"
+
       - name: Grant Execute Permission
         run: chmod +x ./gradlew
 
@@ -104,15 +108,18 @@ jobs:
         run: ./gradlew --version
 
       - name: Run Unit Tests
-        run: ./gradlew test --stacktrace
+        run: ./gradlew testDebugUnitTest --stacktrace
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Locate APK
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Locate APKs
         run: |
           echo "======================================"
-          echo "GENERATED APK"
+          echo "GENERATED APKs"
           echo "======================================"
           find app/build/outputs/apk -type f -name "*.apk" -print
 
@@ -120,9 +127,16 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Ultimate-NoSSL-Debug-APK
-          path: app/build/outputs/apk/**/*.apk
+          name: Ultimate-NoSSL-Debug
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 7
 
-
+      - name: Upload Release APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ultimate-NoSSL-Release
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
+          retention-days: 14

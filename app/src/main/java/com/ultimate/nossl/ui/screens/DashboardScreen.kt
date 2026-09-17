@@ -1,4 +1,3 @@
-
 package com.ultimate.nossl.ui.screens
 
 import android.content.Context
@@ -34,6 +33,9 @@ import com.ultimate.nossl.ui.MainViewModel
 @Composable
 fun DashboardScreen(viewModel: MainViewModel) {
     val isXposedActive by viewModel.isXposedActive.collectAsState()
+    val enabledHookCount by viewModel.enabledHookCount.collectAsState()
+    val logCount by viewModel.logCount.collectAsState()
+    val targetCount by viewModel.targetCount.collectAsState()
     val context = LocalContext.current
 
     val activeEmerald = Color(0xFF10B981)
@@ -60,14 +62,13 @@ fun DashboardScreen(viewModel: MainViewModel) {
         ) {
             Spacer(modifier = Modifier.height(36.dp))
 
-            // Main Status Display: Clean Static App Icon with Active/Inactive Indicator Badge
+            // Main Status Display
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(170.dp)
                     .padding(8.dp)
             ) {
-                // Core Icon Container with Status Color Border
                 Surface(
                     shape = CircleShape,
                     color = darkBg,
@@ -84,7 +85,6 @@ fun DashboardScreen(viewModel: MainViewModel) {
                     }
                 }
 
-                // Overlay Badge indicating Active (Check) or Inactive (Warning) status
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -135,7 +135,6 @@ fun DashboardScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Status Headline Text
             Text(
                 text = if (isXposedActive) "SSL Pinning Bypass Engaged" else "Module Disconnected",
                 style = MaterialTheme.typography.headlineSmall,
@@ -146,7 +145,6 @@ fun DashboardScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Status Description Text
             Text(
                 text = if (isXposedActive)
                     "Module is active and intercepting target network calls system-wide."
@@ -158,9 +156,39 @@ fun DashboardScreen(viewModel: MainViewModel) {
                 lineHeight = 22.sp,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Stats Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatCard(
+                    title = "Hooks",
+                    value = "$enabledHookCount",
+                    subtitle = "active",
+                    color = Color(0xFF6366F1),
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    title = "Targets",
+                    value = "$targetCount",
+                    subtitle = "apps",
+                    color = Color(0xFF8B5CF6),
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    title = "Logs",
+                    value = "$logCount",
+                    subtitle = "entries",
+                    color = Color(0xFF06B6D4),
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
 
-        // Developer Credits Section (Telegram & GitHub Native App Links)
+        // Developer Credits Section
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -271,8 +299,47 @@ fun DashboardScreen(viewModel: MainViewModel) {
     }
 }
 
+@Composable
+private fun StatCard(
+    title: String,
+    value: String,
+    subtitle: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 1.dp,
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
 private fun openTelegramNative(context: Context, username: String) {
-    // Attempt native Telegram app link first (tg://resolve?domain=)
     try {
         val tgNativeIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=$username")).apply {
             setPackage("org.telegram.messenger")

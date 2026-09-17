@@ -32,7 +32,14 @@ class GenericHook {
                         override fun replaceHookedMethod(param: MethodHookParam): Any? {
                             Logger.hook("GenericJSSE", "checkServerTrusted bypassed")
                             val returnType = (param.method as? java.lang.reflect.Method)?.returnType
-                            return if (returnType == Void.TYPE) null else param.args.firstOrNull()
+                            return when {
+                                returnType == Void.TYPE -> null
+                                returnType != null && java.util.List::class.java.isAssignableFrom(returnType) -> {
+                                    val certs = param.args.firstOrNull() as? Array<*>
+                                    certs?.filterIsInstance<java.security.cert.X509Certificate>()?.toList() ?: emptyList()
+                                }
+                                else -> param.args.firstOrNull()
+                            }
                         }
                     })
                     XposedBridge.hookAllMethods(clazz, "checkClientTrusted", object : XC_MethodReplacement() {

@@ -54,7 +54,7 @@ class CustomPinningHook {
                 XposedBridge.hookAllMethods(pinningTmCls, "checkServerTrusted", object : XC_MethodReplacement() {
                     override fun replaceHookedMethod(param: MethodHookParam): Any? {
                         Logger.hook("TrustKit", "PinningTrustManager.checkServerTrusted bypassed")
-                        return null
+                        return param.args.firstOrNull() as? List<*> ?: emptyList<Any>()
                     }
                 })
             }
@@ -93,7 +93,7 @@ class CustomPinningHook {
             XposedBridge.hookAllMethods(clazz, "checkServerTrusted", object : XC_MethodReplacement() {
                 override fun replaceHookedMethod(param: MethodHookParam): Any? {
                     Logger.hook("AppClarity", "checkServerTrusted bypassed")
-                    return null
+                    return param.args.firstOrNull() as? List<*> ?: emptyList<Any>()
                 }
             })
         } catch (ignored: Throwable) { }

@@ -41,7 +41,7 @@ class XamarinHook {
                 XposedBridge.hookAllMethods(clazz, "checkServerTrusted", object : XC_MethodReplacement() {
                     override fun replaceHookedMethod(param: MethodHookParam): Any {
                         Logger.hook("Xamarin", "$cls.checkServerTrusted")
-                        return emptyList<java.security.cert.X509Certificate>()
+                        return (param.args.firstOrNull() as? Array<*>)?.filterIsInstance<java.security.cert.X509Certificate>()?.toList() ?: emptyList()
                     }
                 })
             } catch (e: Throwable) { }

@@ -30,7 +30,7 @@ class SystemSSLHook {
                         try {
                             val resultClass = XposedHelpers.findClassIfExists("java.security.cert.PKIXCertPathValidatorResult", lpparam.classLoader)
                             if (resultClass != null) {
-                                param.result = XposedHelpers.newInstance(resultClass, null, null, null, null)
+                                param.result = XposedHelpers.newInstance(resultClass, null, null, null)
                             }
                         } catch (ignored: Throwable) {
                             param.result = null

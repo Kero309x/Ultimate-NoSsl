@@ -38,6 +38,21 @@ class UnityHook {
 
     private fun hookUnityWebRequest(lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
+            val certHandlerCls = XposedHelpers.findClassIfExists(
+                "UnityEngine.Networking.CertificateHandler",
+                lpparam.classLoader
+            )
+            if (certHandlerCls != null) {
+                XposedBridge.hookAllMethods(certHandlerCls, "ReceiveCertificate", object : XC_MethodReplacement() {
+                    override fun replaceHookedMethod(param: MethodHookParam): Any {
+                        Logger.hook("Unity", "CertificateHandler.ReceiveCertificate -> approved")
+                        return true
+                    }
+                })
+            }
+        } catch (e: Throwable) { }
+
+        try {
             XposedHelpers.findAndHookMethod(
                 "com.unity3d.player.UnityPlayerActivity",
                 lpparam.classLoader,

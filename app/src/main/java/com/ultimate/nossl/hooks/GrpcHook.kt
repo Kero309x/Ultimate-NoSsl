@@ -1,6 +1,7 @@
 package com.ultimate.nossl.hooks
 
 import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XC_MethodReplacement
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
@@ -58,9 +59,10 @@ class GrpcHook {
         try {
             val tlsChannelCls = XposedHelpers.findClassIfExists("io.grpc.okhttp.TlsChannelCredentials", lpparam.classLoader)
             if (tlsChannelCls != null) {
-                XposedBridge.hookAllMethods(tlsChannelCls, "create", object : XC_MethodHook() {
-                    override fun afterHookedMethod(param: MethodHookParam) {
-                        Logger.hook("gRPC", "TlsChannelCredentials.create intercepted")
+                XposedBridge.hookAllMethods(tlsChannelCls, "create", object : XC_MethodReplacement() {
+                    override fun replaceHookedMethod(param: MethodHookParam): Any? {
+                        Logger.hook("gRPC", "TlsChannelCredentials.create intercepted - returning insecure")
+                        return null
                     }
                 })
             }

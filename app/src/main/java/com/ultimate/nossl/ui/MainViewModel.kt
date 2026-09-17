@@ -80,13 +80,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             HookModuleInfo("gRPC", "gRPC Channels (OkHttp / Netty)", "Protocols", "Intercepts OkHttpChannelBuilder and NettyChannelBuilder SSL factories", "gRPC Framework"),
             HookModuleInfo("WebSocket", "WebSocket Secure (WSS)", "Protocols", "Intercepts Java-WebSocket and nv-websocket-client SSL factories", "WebSocket WSS"),
             HookModuleInfo("Ktor", "Ktor HTTP Client (KMP)", "Protocols", "Injects unsafe SSL into Ktor OkHttp, CIO, and AndroidClientEngine", "Ktor Multiplatform"),
-            HookModuleInfo("GenericHook", "Generic Catch-All Hook", "Generic Engine", "Dynamic scanner for unknown X509TrustManager implementations", "Unknown / Obfuscated")
+            HookModuleInfo("GenericHook", "Generic Catch-All Hook", "Generic Engine", "Dynamic scanner for unknown X509TrustManager implementations", "Unknown / Obfuscated"),
+            HookModuleInfo("CustomPinning", "Custom Pinning Libraries", "Third-Party", "Bypasses TrustKit, AppAuth, AppClarity, Tink, and custom pinning", "TrustKit / AppAuth / Tink"),
+            HookModuleInfo("GMS", "Google Play Services / SafetyNet", "System", "Hooks GmsTrustManager and SafetyNet attestation bypass", "Google Play Services"),
+            HookModuleInfo("HPKP", "HTTP Public Key Pinning (HPKP)", "Security Policy", "Bypasses HPKP enforcement, header parsing, and pin validation", "HPKP Standard"),
+            HookModuleInfo("Tls13", "TLS 1.3 Protocol Hooks", "Protocol", "Intercepts TLS 1.3 handshake, cipher suite, key share, and cert verify", "TLS 1.3"),
+            HookModuleInfo("AntiDetection", "Anti-Detection Engine", "Evasion", "Hides module from root detectors, frida, xposed checks", "System Evasion"),
+            HookModuleInfo("Chromium", "Chromium Network Stack", "Native Engine", "Hooks Chromium network delegate and SSL config", "Chromium / WebView"),
+            HookModuleInfo("GraphQL", "GraphQL Client Pinner", "HTTP Clients", "Bypasses Apollo GraphQL, Ktor GraphQL, and custom interceptors", "Apollo / Ktor GraphQL"),
+            HookModuleInfo("HookEngine", "Core Hook Engine", "Core", "Main orchestration engine for all hook modules", "Core Module"),
+            HookModuleInfo("ClassScanner", "Dynamic Class Scanner", "Core", "Scans loaded classes for SSL implementations at runtime", "Core Module"),
+            HookModuleInfo("ConstructorWatcher", "Constructor Watcher", "Core", "Watches new SSL-related object construction", "Core Module"),
+            HookModuleInfo("NativeInterceptor", "Native .so Interceptor", "Core", "Intercepts native library loading via dlopen", "Core Module")
         ).map { hook ->
             val isEnabled = prefs.getBoolean("hook_${hook.id}", true)
             hook.copy(isEnabled = isEnabled)
         }
     )
     val hooksList: StateFlow<List<HookModuleInfo>> = _hooksList.asStateFlow()
+
+    val logCount: StateFlow<Int> = logDao.getLogCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val targetCount: StateFlow<Int> = targetDao.getTargetCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val enabledHookCount: StateFlow<Int> = _hooksList.map { hooks ->
+        hooks.count { it.isEnabled }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     init {
         checkXposedStatus()
@@ -113,7 +134,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
             val pm = getApplication<Application>().packageManager
             val packages = pm.getInstalledPackages(PackageManager.GET_META_DATA)
-            packages.take(25).forEach { pkg ->
+            packages.forEach { pkg ->
                 val appName = pkg.applicationInfo?.loadLabel(pm)?.toString() ?: pkg.packageName
                 val isSys = (pkg.applicationInfo?.flags ?: 0) and ApplicationInfo.FLAG_SYSTEM != 0
                 val isEnabled = prefs.getBoolean("app_${pkg.packageName}", true)

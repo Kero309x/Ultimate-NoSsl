@@ -39,7 +39,7 @@ class UltimateHook : IXposedHookLoadPackage {
             return
         }
 
-        if (!ConfigManager.isTargetAppEnabled(lpparam.packageName)) {
+        if (!ConfigManager.isHookEnabled(lpparam.packageName)) {
             return
         }
 
@@ -103,6 +103,8 @@ class UltimateHook : IXposedHookLoadPackage {
         safeInit("BoringSSL") { BoringSSLHook().init(lpparam) }
         safeInit("NetworkSecurity") { NetworkSecurityHook().init(lpparam) }
         safeInit("CertificateTransparency") { CertificateTransparencyHook().init(lpparam) }
+        safeInit("HPKP") { HPKPHook().init(lpparam) }
+        safeInit("Tls13") { Tls13Hook().init(lpparam) }
 
         // Phase 7: Anti-detection & utilities
         safeInit("ProxyDetection") { ProxyDetectionHook().init(lpparam) }
@@ -111,6 +113,9 @@ class UltimateHook : IXposedHookLoadPackage {
         // Phase 8: Dynamic & generic
         safeInit("CustomPinning") { CustomPinningHook().init(lpparam) }
         safeInit("GenericHook") { GenericHook().init(lpparam) }
+
+        // Phase 9: GraphQL clients
+        safeInit("GraphQL") { GraphQLPinningHook().init(lpparam) }
 
         Logger.i("✅ ALL HOOKS DEPLOYED FOR: ${lpparam.packageName}")
     }
