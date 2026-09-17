@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,13 +21,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ultimate.nossl.ui.MainViewModel
+import com.ultimate.nossl.utils.Logger
+import org.json.JSONObject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("ultimate_nossl_prefs", Context.MODE_PRIVATE)
+    var isDebugMode by remember { mutableStateOf(Logger.isDebug) }
     var showClearDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -42,46 +47,62 @@ fun SettingsScreen(viewModel: MainViewModel) {
             modifier = Modifier.padding(vertical = 8.dp)
         )
 
-        // Export Settings
+        SettingsCard(
+            icon = Icons.Default.BugReport,
+            title = "Debug Mode",
+            description = if (isDebugMode) "Enabled - verbose logging active" else "Disabled",
+            iconTint = Color(0xFFF59E0B),
+            onClick = {
+                isDebugMode = !isDebugMode
+                Logger.setDebug(isDebugMode)
+                prefs.edit().putBoolean("debug_mode", isDebugMode).apply()
+            }
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
         SettingsCard(
             icon = Icons.Default.FileDownload,
             title = "Export Settings",
             description = "Copy all hook & app settings to clipboard as JSON",
             iconTint = Color(0xFF10B981),
             onClick = {
-                val allPrefs = prefs.all
-                val json = org.json.JSONObject()
-                allPrefs.forEach { (key, value) ->
-                    when (value) {
-                        is Boolean -> json.put(key, value)
-                        is String -> json.put(key, value)
-                        is Int -> json.put(key, value)
-                        is Float -> json.put(key, value)
-                        is Long -> json.put(key, value)
+                try {
+                    val json = JSONObject()
+                    prefs.all.forEach { (key, value) ->
+                        when (value) {
+                            is Boolean -> json.put(key, value)
+                            is String -> json.put(key, value)
+                            is Int -> json.put(key, value)
+                            is Float -> json.put(key, value.toDouble())
+                            is Long -> json.put(key, value)
+                        }
                     }
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText("UltimateNoSSL_Settings", json.toString(2)))
+                    Toast.makeText(context, "Settings exported to clipboard", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
-                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("UltimateNoSSL_Settings", json.toString(2)))
-                Toast.makeText(context, "Settings exported to clipboard", Toast.LENGTH_SHORT).show()
             }
         )
 
-        // Import Settings
         SettingsCard(
             icon = Icons.Default.FileUpload,
             title = "Import Settings",
             description = "Paste settings from clipboard and apply",
             iconTint = Color(0xFF3B82F6),
             onClick = {
-                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val clipData = clipboard.primaryClip
-                val text = clipData?.getItemAt(0)?.text?.toString()
-                if (text != null) {
-                    try {
-                        val json = org.json.JSONObject(text)
+                try {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clipData = clipboard.primaryClip
+                    val text = clipData?.getItemAt(0)?.text?.toString()
+                    if (text != null) {
+                        val json = JSONObject(text)
                         val editor = prefs.edit()
                         json.keys().forEach { key ->
-                            when (val value = json.get(key)) {
+                            val value = json.get(key)
+                            when (value) {
                                 is Boolean -> editor.putBoolean(key, value)
                                 is String -> editor.putString(key, value)
                                 is Int -> editor.putInt(key, value)
@@ -90,19 +111,18 @@ fun SettingsScreen(viewModel: MainViewModel) {
                             }
                         }
                         editor.apply()
-                        Toast.makeText(context, "Settings imported successfully. Restart module to apply.", Toast.LENGTH_LONG).show()
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Invalid settings format", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Settings imported. Restart app to apply.", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
                     }
-                } else {
-                    Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Invalid settings format", Toast.LENGTH_SHORT).show()
                 }
             }
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        // Clear Logs
         SettingsCard(
             icon = Icons.Default.DeleteSweep,
             title = "Clear All Logs",
@@ -113,13 +133,12 @@ fun SettingsScreen(viewModel: MainViewModel) {
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        // About
         SettingsCard(
             icon = Icons.Default.Info,
             title = "About Ultimate NoSSL",
-            description = "Version 2.0 — Universal SSL Pinning Bypass Engine for Android",
+            description = "Version 2.0 — Universal SSL Pinning Bypass Engine",
             iconTint = Color(0xFF8B5CF6),
-            onClick = { }
+            onClick = { showAboutDialog = true }
         )
 
         Spacer(modifier = Modifier.height(80.dp))
@@ -145,6 +164,31 @@ fun SettingsScreen(viewModel: MainViewModel) {
                 TextButton(onClick = { showClearDialog = false }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    if (showAboutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAboutDialog = false },
+            title = { Text("About Ultimate NoSSL") },
+            text = {
+                Column {
+                    Text("Version 2.0", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Universal SSL Pinning Bypass Module")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Supports: 34 hook types", style = MaterialTheme.typography.bodySmall)
+                    Text("Developer: @its_kero309x", style = MaterialTheme.typography.bodySmall)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Module Active: ${if (viewModel.isModuleActive()) "Yes" else "No"}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAboutDialog = false }) { Text("OK") }
             }
         )
     }

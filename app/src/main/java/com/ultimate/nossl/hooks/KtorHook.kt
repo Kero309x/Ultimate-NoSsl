@@ -31,7 +31,7 @@ class KtorHook {
                             conn.hostnameVerifier = SSLFactory.UNSAFE_VERIFIER
                         }
                         XposedHelpers.callMethod(param.thisObject, "setSslManager", sslManagerLambda)
-                        Logger.hook("Ktor", "AndroidEngineConfig.sslManager injected with unsafe defaults")
+                        Logger.hook("Ktor", "AndroidEngineConfig.sslManager injected")
                     } catch (ignored: Throwable) {}
                 }
             })
@@ -47,16 +47,7 @@ class KtorHook {
 
             XposedBridge.hookAllConstructors(okhttpConfigCls, object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
-                    try {
-                        val configBlock: (Any) -> Unit = { builder ->
-                            try {
-                                XposedHelpers.callMethod(builder, "sslSocketFactory", SSLFactory.UNSAFE_SOCKET_FACTORY, SSLFactory.TRUST_ALL)
-                                XposedHelpers.callMethod(builder, "hostnameVerifier", SSLFactory.UNSAFE_VERIFIER)
-                            } catch (ignored: Throwable) {}
-                        }
-                        XposedHelpers.callMethod(param.thisObject, "config", configBlock)
-                        Logger.hook("Ktor", "OkHttpConfig injected with unsafe SSL defaults")
-                    } catch (ignored: Throwable) {}
+                    Logger.hook("Ktor", "OkHttpConfig constructed - SSL will be bypassed via OkHttpHook")
                 }
             })
         } catch (ignored: Throwable) { }
@@ -69,9 +60,9 @@ class KtorHook {
                 lpparam.classLoader
             ) ?: return
 
-            XposedBridge.hookAllMethods(cioEngineCls, "https", object : XC_MethodHook() {
-                override fun beforeHookedMethod(param: MethodHookParam) {
-                    Logger.hook("Ktor", "CIOEngineConfig.https intercepted")
+            XposedBridge.hookAllConstructors(cioEngineCls, object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    Logger.hook("Ktor", "CIOEngineConfig constructed - SSL will be bypassed via native hooks")
                 }
             })
         } catch (ignored: Throwable) { }

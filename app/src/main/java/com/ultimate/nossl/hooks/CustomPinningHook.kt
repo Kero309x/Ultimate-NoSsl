@@ -101,16 +101,16 @@ class CustomPinningHook {
 
     private fun hookTink(lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
-            val clazz = XposedHelpers.findClassIfExists(
-                "com.google.crypto.tink.subtle.EngineFactory",
-                lpparam.classLoader
-            ) ?: return
-
-            XposedBridge.hookAllMethods(clazz, "getInstance", object : XC_MethodHook() {
-                override fun beforeHookedMethod(param: MethodHookParam) {
-                    Logger.hook("Tink", "EngineFactory.getInstance intercepted")
-                }
-            })
-        } catch (ignored: Throwable) { }
+            val tinkClasses = listOf(
+                "com.google.crypto.tink.ssl.DarkByteStreamingAead",
+                "com.google.crypto.tink.integration.android.AndroidNetworkSecurityPolicy"
+            )
+            tinkClasses.forEach { cls ->
+                val clazz = XposedHelpers.findClassIfExists(cls, lpparam.classLoader) ?: return@forEach
+                XposedBridge.hookAllMethods(clazz, "isCleartextTrafficPermitted", object : XC_MethodReplacement() {
+                    override fun replaceHookedMethod(param: MethodHookParam): Any = true
+                })
+            }
+        } catch (e: Throwable) { }
     }
 }

@@ -29,7 +29,7 @@ class Tls13Hook {
             XposedBridge.hookAllMethods(handshaker, "getActiveCipherSuites", object : XC_MethodReplacement() {
                 override fun replaceHookedMethod(param: MethodHookParam): Any {
                     Logger.hook("TLS1.3", "Tls13Handshaker.getActiveCipherSuites -> allow all")
-                    return param.getResult()
+                    return param.result
                 }
             })
         } catch (e: Throwable) { }

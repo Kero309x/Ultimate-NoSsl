@@ -1,4 +1,3 @@
-
 package com.ultimate.nossl.hooks
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
@@ -33,6 +32,19 @@ class UnityHook {
                     }
                 }
             })
+        } catch (e: Throwable) { }
+
+        try {
+            val unityWebRequest = XposedHelpers.findClassIfExists(
+                "UnityEngine.Networking.UnityWebRequest",
+                lpparam.classLoader
+            )
+            if (unityWebRequest != null) {
+                XposedBridge.hookAllMethods(unityWebRequest, "CertificateHandler", object : XC_MethodReplacement() {
+                    override fun replaceHookedMethod(param: MethodHookParam): Any = true
+                })
+                Logger.hook("Unity", "UnityWebRequest.CertificateHandler bypassed")
+            }
         } catch (e: Throwable) { }
     }
 

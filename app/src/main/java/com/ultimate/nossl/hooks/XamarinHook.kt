@@ -27,6 +27,15 @@ class XamarinHook {
                 }
             })
         } catch (e: Throwable) { }
+
+        try {
+            val tlsProvider = XposedHelpers.findClassIfExists("Mono.Security.Interface.MonoTlsProvider", lpparam.classLoader)
+            if (tlsProvider != null) {
+                XposedBridge.hookAllMethods(tlsProvider, "IsSupported", object : XC_MethodReplacement() {
+                    override fun replaceHookedMethod(param: MethodHookParam): Any = false
+                })
+            }
+        } catch (e: Throwable) { }
     }
 
     private fun hookXamarinHttp(lpparam: XC_LoadPackage.LoadPackageParam) {
