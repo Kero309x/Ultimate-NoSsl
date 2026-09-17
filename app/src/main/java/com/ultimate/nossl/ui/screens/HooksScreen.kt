@@ -1,4 +1,3 @@
-
 package com.ultimate.nossl.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -12,8 +11,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ultimate.nossl.ui.MainViewModel
@@ -40,76 +41,59 @@ fun HooksScreen(viewModel: MainViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = 14.dp)
     ) {
+        Spacer(modifier = Modifier.height(8.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Hook Modules",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "$activeCount of ${filteredHooks.size} modules active",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text("Hook Modules", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("$activeCount of ${filteredHooks.size} active", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilledTonalButton(
-                    onClick = {
-                        hooksList.forEach { if (!it.isEnabled) viewModel.toggleHook(it.id) }
-                    },
+                    onClick = { hooksList.forEach { if (!it.isEnabled) viewModel.toggleHook(it.id) } },
                     shape = CircleShape,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text("Enable All", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                }
-
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                ) { Text("All On", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                 OutlinedButton(
-                    onClick = {
-                        hooksList.forEach { if (it.isEnabled) viewModel.toggleHook(it.id) }
-                    },
+                    onClick = { hooksList.forEach { if (it.isEnabled) viewModel.toggleHook(it.id) } },
                     shape = CircleShape,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text("Disable All", style = MaterialTheme.typography.labelSmall)
-                }
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                ) { Text("All Off", style = MaterialTheme.typography.labelSmall) }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // Search Field
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Search modules by name or framework...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            placeholder = { Text("Search hooks...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(Icons.Default.Close, contentDescription = "Clear search")
+                    IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(20.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp))
                     }
                 }
             },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape = RoundedCornerShape(16.dp),
+            textStyle = MaterialTheme.typography.bodySmall,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
             )
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Category Filter Chips
         ScrollableTabRow(
             selectedTabIndex = categories.indexOf(selectedCategory).coerceAtLeast(0),
             edgePadding = 0.dp,
@@ -121,45 +105,31 @@ fun HooksScreen(viewModel: MainViewModel) {
                 FilterChip(
                     selected = selectedCategory == cat,
                     onClick = { selectedCategory = cat },
-                    label = { Text(cat, fontWeight = if (selectedCategory == cat) FontWeight.Bold else FontWeight.Medium) },
+                    label = { Text(cat, fontSize = 11.sp, fontWeight = if (selectedCategory == cat) FontWeight.Bold else FontWeight.Medium) },
                     shape = CircleShape,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(end = 6.dp).height(32.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         if (filteredHooks.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.SearchOff,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "No modules match '$searchQuery'",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Icon(Icons.Default.SearchOff, contentDescription = null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("No modules found", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(filteredHooks, key = { it.id }) { hook ->
                     Card(
-                        shape = RoundedCornerShape(22.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (hook.isEnabled)
                                 MaterialTheme.colorScheme.surfaceContainerHigh
@@ -169,78 +139,76 @@ fun HooksScreen(viewModel: MainViewModel) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(18.dp),
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
+                                // Name + Category on same row
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Text(
                                         text = hook.name,
-                                        style = MaterialTheme.typography.titleMedium,
+                                        style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (hook.isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = if (hook.isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        modifier = Modifier.weight(1f, fill = false)
                                     )
                                     Surface(
                                         color = MaterialTheme.colorScheme.primaryContainer,
-                                        shape = CircleShape
+                                        shape = RoundedCornerShape(6.dp)
                                     ) {
                                         Text(
                                             text = hook.category,
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                            fontSize = 10.sp,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
 
+                                // Description - max 2 lines
                                 Text(
                                     text = hook.description,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp
+                                    fontSize = 11.sp,
+                                    lineHeight = 14.sp,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
                                 )
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
 
+                                // Target framework
                                 Surface(
-                                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                                    shape = RoundedCornerShape(8.dp)
+                                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(6.dp)
                                 ) {
                                     Text(
-                                        text = "Target: ${hook.targetFramework}",
+                                        text = hook.targetFramework,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 11.sp
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
 
                             Switch(
                                 checked = hook.isEnabled,
                                 onCheckedChange = { viewModel.toggleHook(hook.id) },
-                                thumbContent = {
-                                    if (hook.isEnabled) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(SwitchDefaults.IconSize)
-                                        )
-                                    }
-                                }
+                                modifier = Modifier.scale(0.8f)
                             )
                         }
                     }
