@@ -25,7 +25,7 @@ object SafeReflection {
 
     fun findMethod(clazz: Class<*>?, methodName: String, vararg paramTypes: Class<*>): Method? {
         if (clazz == null) return null
-        val paramSid = paramTypes-joinToString(":") { it.name }
+        val paramSid = paramTypes.joinToString(":") { it.name }
         val key = "${clazz.name}_${methodName}_$paramSid"
         methodCache.get(key)?.let { return it }
 
@@ -63,7 +63,7 @@ object SafeReflection {
                 } catch (ignored: NoSuchFieldException) {
                     current = current.superclass
                 } catch (ignored: Throwable) {
-                   break
+                    break
                 }
             }
         }

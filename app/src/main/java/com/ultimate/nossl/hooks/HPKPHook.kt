@@ -48,7 +48,7 @@ class HPKPHook {
             XposedBridge.hookAllMethods(headerParser, "parse", object : XC_MethodReplacement() {
                 override fun replaceHookedMethod(param: MethodHookParam): Any {
                     Logger.hook("HPKP", "HPKPHeaderParser.parse -> empty policy")
-                    return null
+                    return ""
                 }
             })
 

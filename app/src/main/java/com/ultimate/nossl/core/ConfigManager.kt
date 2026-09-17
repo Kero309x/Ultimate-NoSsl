@@ -32,7 +32,7 @@ object ConfigManager {
         }
      }
 
-    fun isHookEnabled(packageName: String): Boolean {
+    fun isTargetAppEnabled(packageName: String): Boolean {
         if (packageName == PACKAGE_NAME) return false
         return try {
             xPrefs?.reload()

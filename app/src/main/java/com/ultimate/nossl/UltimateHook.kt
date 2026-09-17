@@ -39,7 +39,7 @@ class UltimateHook : IXposedHookLoadPackage {
             return
         }
 
-        if (!ConfigManager.isHookEnabled(lpparam.packageName)) {
+        if (!ConfigManager.isTargetAppEnabled(lpparam.packageName)) {
             return
         }
 

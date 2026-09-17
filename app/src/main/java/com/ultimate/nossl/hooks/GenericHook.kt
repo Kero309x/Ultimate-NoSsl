@@ -36,7 +36,7 @@ class GenericHook {
                                 returnType == Void.TYPE -> null
                                 returnType != null && java.util.List::class.java.isAssignableFrom(returnType) -> {
                                     val certs = param.args.firstOrNull() as? Array<*>
-                                    certs?.filterIsInstance<java.security.cert.X509Certificate>()?.toList() ?: emptyList()
+                                    certs?.filterIsInstance<java.security.cert.X509Certificate>()?.toList() ?: emptyList<java.security.cert.X509Certificate>()
                                 }
                                 else -> param.args.firstOrNull()
                             }

@@ -64,7 +64,7 @@ class Tls13Hook {
             XposedBridge.hookAllMethods(keyShare, "generate", object : XC_MethodReplacement() {
                 override fun replaceHookedMethod(param: MethodHookParam): Any {
                     Logger.hook("TLS1.3", "Tls13KeyShare.generate -> bypassed")
-                    return null
+                    return ""
                 }
             })
 
