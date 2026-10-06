@@ -1,42 +1,43 @@
-
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
 import de.robv.android.xposed.XC_MethodHook
 import com.ultimate.nossl.UltimateHook
-import com.ultimate.nossl.utils.Logger
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class FlutterHook {
-    
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
-        hookFlutterJNI(lpparam)
+class FlutterHook : BaseHook() {
+    override val id = "Flutter"
+    override val name = "Flutter Engine SSL Interceptor"
+    override val targetFramework = "Flutter"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam): Boolean {
+        return XposedHelpers.findClassIfExists("io.flutter.embedding.engine.FlutterJNI", lpparam.classLoader) != null
     }
 
-    private fun hookFlutterJNI(lpparam: XC_LoadPackage.LoadPackageParam) {
-        try {
-            val flutterJNI = XposedHelpers.findClassIfExists(
-                "io.flutter.embedding.engine.FlutterJNI",
-                lpparam.classLoader
-            ) ?: return
-
-            XposedBridge.hookAllMethods(flutterJNI, "attachToNative", object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    Logger.hook("Flutter", "FlutterJNI attached to native engine -> trigger memory patch")
-                    try {
-                        UltimateHook.scanFlutterNative()
-                    } catch (ignored: Throwable) {}
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
+        val flutterJNI = XposedHelpers.findClass("io.flutter.embedding.engine.FlutterJNI", lpparam.classLoader)
+        
+        XposedBridge.hookAllMethods(flutterJNI, "attachToNative", object : XC_MethodHook() {
+            override fun afterHookedMethod(param: MethodHookParam) {
+                logDiagnostic("FlutterJNI attached to native engine -> triggering memory patch")
+                try {
+                    UltimateHook.scanFlutterNative()
+                } catch (t: Throwable) {
+                    logDiagnostic("Failed to trigger scanFlutterNative: ${t.message}")
                 }
-            })
+            }
+        })
 
-            XposedBridge.hookAllMethods(flutterJNI, "init", object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    try {
-                        UltimateHook.scanFlutterNative()
-                    } catch (ignored: Throwable) {}
+        XposedBridge.hookAllMethods(flutterJNI, "init", object : XC_MethodHook() {
+            override fun afterHookedMethod(param: MethodHookParam) {
+                logDiagnostic("FlutterJNI init called -> triggering memory patch")
+                try {
+                    UltimateHook.scanFlutterNative()
+                } catch (t: Throwable) {
+                    logDiagnostic("Failed to trigger scanFlutterNative: ${t.message}")
                 }
-            })
-        } catch (ignored: Throwable) { }
+            }
+        })
     }
 }

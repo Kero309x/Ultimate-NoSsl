@@ -4,7 +4,7 @@
 ### *Universal Android SSL/TLS Pinning Bypass & Network Inspection Engine*
 
 [![Android](https://img.shields.io/badge/Android-7.0%20to%2015%20(API%2024--35)-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com)
-[![Architecture](https://img.shields.io/badge/Architecture-ARM64%20|%20ARM32%20|%20x86__64-007ACC?style=for-the-badge&logo=arm&logoColor=white)](https://github.com/Kero309x/Ultimate-NoSsl)
+[![Architecture](https://img.shields.io/badge/Architecture-ARM64%20|%20ARM32-007ACC?style=for-the-badge&logo=arm&logoColor=white)](https://github.com/Kero309x/Ultimate-NoSsl)
 [![Xposed](https://img.shields.io/badge/Xposed-LSPosed%20%2F%20EdXposed-8A2BE2?style=for-the-badge)](https://github.com/LSPosed/LSPosed)
 [![CI/CD](https://img.shields.io/badge/Build-GitHub%20Actions%20Passing-success?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/Kero309x/Ultimate-NoSsl/actions)
 [![License](https://img.shields.io/badge/License-MIT-orange?style=for-the-badge)](LICENSE)
@@ -86,7 +86,7 @@ graph TD
     <td width="50%">
       <h3>🚀 Native Memory Patching</h3>
       <ul>
-        <li><b>Multi-ABI Support</b>: ARM64, ARM32 (Thumb-2), and x86/x86_64.</li>
+        <li><b>Multi-ABI Support</b>: ARM64 and ARM32 (Thumb-2).</li>
         <li><b>W^X Memory Safety</b>: Dual-permission page flipping (<code>mprotect</code>) with I-Cache purging.</li>
         <li><b>Flutter 3.x+ Direct Scanner</b>: Byte-signature scanning for Dart VM stripped binaries (<code>session_verify_cert_chain</code>).</li>
         <li><b>Late-Load Interception</b>: Captures runtime libraries loaded via <code>dlopen</code> (Meta Liger, Proxygen, Fizz).</li>

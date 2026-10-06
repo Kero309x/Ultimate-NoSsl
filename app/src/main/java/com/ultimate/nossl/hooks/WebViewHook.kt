@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import android.webkit.SslErrorHandler
 import android.webkit.WebView
@@ -9,9 +11,14 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class WebViewHook {
+class WebViewHook : BaseHook() {
+    override val id = "WebViewHook"
+    override val name = "WebViewHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookWebViewSetClient(lpparam)
         hookBaseWebViewClient(lpparam)
         hookWebViewSettings(lpparam)
@@ -31,7 +38,7 @@ class WebViewHook {
                     }
                 }
             )
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookCustomWebViewClientClass(clazz: Class<*>) {
@@ -47,7 +54,7 @@ class WebViewHook {
                     }
                 }
             })
-        } catch (ignored: Throwable) {}
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookBaseWebViewClient(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -66,7 +73,7 @@ class WebViewHook {
                     }
                 }
             )
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookWebViewFactoryProvider(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -89,7 +96,7 @@ class WebViewHook {
                     }
                 )
             }
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookWebViewSettings(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -105,6 +112,6 @@ class WebViewHook {
                     }
                 }
             )
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

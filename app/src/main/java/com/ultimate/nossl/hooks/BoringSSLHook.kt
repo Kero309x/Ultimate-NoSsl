@@ -1,6 +1,8 @@
 
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import com.ultimate.nossl.utils.Logger
@@ -9,9 +11,14 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class BoringSSLHook {
+class BoringSSLHook : BaseHook() {
+    override val id = "BoringSSLHook"
+    override val name = "BoringSSLHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
+
     
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookOpenSSLContext(lpparam)
         hookNativeCrypto(lpparam)
         hookSSLUtils(lpparam)
@@ -32,7 +39,7 @@ class BoringSSLHook {
                     }
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookNativeCrypto(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -66,7 +73,7 @@ class BoringSSLHook {
                         }
                     })
                 }
-            } catch (ignored: Throwable) { }
+            } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
         }
     }
 
@@ -83,6 +90,6 @@ class BoringSSLHook {
                     return null
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

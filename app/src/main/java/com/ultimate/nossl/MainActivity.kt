@@ -41,6 +41,7 @@ enum class Screen(val label: String, val icon: ImageVector) {
     Dashboard("Dashboard", Icons.Default.Home),
     Hooks("Hooks", Icons.Default.Build),
     Targets("Targets", Icons.Default.Apps),
+    @Suppress("DEPRECATION")
     Logs("Logs", Icons.Default.List),
     Settings("Settings", Icons.Default.Settings)
 }

@@ -1,22 +1,28 @@
 package com.ultimate.nossl.utils
 
-import android.util.LruCache
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.util.concurrent.ConcurrentHashMap
 
 object SafeReflection {
+    private const val MAX_ENTRIES = 512
 
-    private val classCache = LruCache<String, Class<*>>(256)
-    private val methodCache = LruCache<String, Method>(512)
-    private val fieldCache = LruCache<String, Field>(256)
+    private val classCache = ConcurrentHashMap<String, Class<*>>(256)
+    private val methodCache = ConcurrentHashMap<String, Method>(512)
+    private val fieldCache = ConcurrentHashMap<String, Field>(256)
+
+    private fun <K, V> putBounded(map: ConcurrentHashMap<K, V>, key: K, value: V) {
+        if (map.size >= MAX_ENTRIES) map.clear()
+        map[key] = value
+    }
 
     fun findClass(className: String, classLoader: ClassLoader?): Class<*>? {
         val key = "${classLoader?.hashCode() ?: 0}_$className"
-        classCache.get(key)?.let { return it }
+        classCache[key]?.let { return it }
 
         return try {
             val clazz = Class.forName(className, false, classLoader ?: ClassLoader.getSystemClassLoader())
-            classCache.put(key, clazz)
+            putBounded(classCache, key, clazz)
             clazz
         } catch (ignored: Throwable) {
             null
@@ -27,14 +33,14 @@ object SafeReflection {
         if (clazz == null) return null
         val paramSid = paramTypes.joinToString(":") { it.name }
         val key = "${clazz.name}_${methodName}_$paramSid"
-        methodCache.get(key)?.let { return it }
+        methodCache[key]?.let { return it }
 
         var current: Class<*>? = clazz
         while (current != null && current != Any::class.java) {
             try {
                 val method = current.getDeclaredMethod(methodName, *paramTypes)
                 method.isAccessible = true
-                methodCache.put(key, method)
+                putBounded(methodCache, key, method)
                 return method
             } catch (ignored: NoSuchMethodException) {
                 current = current.superclass
@@ -49,7 +55,7 @@ object SafeReflection {
         if (target == null) return null
         val clazz = target.javaClass
         val key = "${clazz.name}_$fieldName"
-        var field = fieldCache.get(key)
+        var field = fieldCache[key]
 
         if (field == null) {
             var current: Class<*>? = clazz
@@ -57,7 +63,7 @@ object SafeReflection {
                 try {
                     val f = current.getDeclaredField(fieldName)
                     f.isAccessible = true
-                    fieldCache.put(key, f)
+                    putBounded(fieldCache, key, f)
                     field = f
                     break
                 } catch (ignored: NoSuchFieldException) {
@@ -79,7 +85,7 @@ object SafeReflection {
         if (target == null) return false
         val clazz = target.javaClass
         val key = "${clazz.name}_$fieldName"
-        var field = fieldCache.get(key)
+        var field = fieldCache[key]
 
         if (field == null) {
             var current: Class<*>? = clazz
@@ -87,7 +93,7 @@ object SafeReflection {
                 try {
                     val f = current.getDeclaredField(fieldName)
                     f.isAccessible = true
-                    fieldCache.put(key, f)
+                    putBounded(fieldCache, key, f)
                     field = f
                     break
                 } catch (ignored: NoSuchFieldException) {
@@ -107,8 +113,8 @@ object SafeReflection {
     }
 
     fun clearAll() {
-        classCache.evictAll()
-        methodCache.evictAll()
-        fieldCache.evictAll()
+        classCache.clear()
+        methodCache.clear()
+        fieldCache.clear()
     }
 }

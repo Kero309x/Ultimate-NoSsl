@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import com.ultimate.nossl.utils.Logger
@@ -8,9 +10,14 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class ReactNativeHook {
+class ReactNativeHook : BaseHook() {
+    override val id = "ReactNativeHook"
+    override val name = "ReactNativeHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookOkHttpClientProvider(lpparam)
         hookFlipper(lpparam)
         hookSSLPinningModules(lpparam)
@@ -50,7 +57,7 @@ class ReactNativeHook {
                         Logger.hook("ReactNative", "$clsName.getOkHttpClient bypassed")
                     }
                 })
-            } catch (ignored: Throwable) { }
+            } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
         }
     }
 
@@ -67,7 +74,7 @@ class ReactNativeHook {
                     return XposedHelpers.callMethod(chain, "proceed", request)
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookSSLPinningModules(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -93,9 +100,9 @@ class ReactNativeHook {
                                 }
                             }
                         })
-                    } catch (ignored: Throwable) { }
+                    } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                 }
-            } catch (ignored: Throwable) { }
+            } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
         }
     }
 
@@ -110,7 +117,7 @@ class ReactNativeHook {
                     XposedHelpers.callMethod(builder, "certificatePinner", defaultPinner)
                 }
             }
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun patchExistingClient(client: Any) {
@@ -123,7 +130,7 @@ class ReactNativeHook {
                         field.isAccessible = true
                         field.set(client, value)
                     }
-                } catch (ignored: Throwable) { }
+                } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
             }
 
             setFieldIfExists("sslSocketFactory", SSLFactory.UNSAFE_SOCKET_FACTORY)
@@ -135,6 +142,6 @@ class ReactNativeHook {
                     setFieldIfExists("certificatePinner", defaultPinner)
                 }
             }
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

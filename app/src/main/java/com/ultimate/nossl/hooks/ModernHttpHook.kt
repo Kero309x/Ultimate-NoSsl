@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
@@ -7,9 +9,14 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage
 import com.ultimate.nossl.utils.Logger
 import com.ultimate.nossl.utils.SSLFactory
 
-class ModernHttpHook {
+class ModernHttpHook : BaseHook() {
+    override val id = "ModernHttpHook"
+    override val name = "ModernHttpHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookRetrofitBuilder(lpparam)
         hookFuelManager(lpparam)
     }
@@ -37,10 +44,10 @@ class ModernHttpHook {
                             verifierField.set(client, SSLFactory.UNSAFE_VERIFIER)
                         }
                         Logger.hook("Retrofit", "Retrofit client injected with unsafe SSL parameters")
-                    } catch (ignored: Throwable) {}
+                    } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookFuelManager(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -56,9 +63,9 @@ class ModernHttpHook {
                         XposedHelpers.callMethod(param.thisObject, "setSocketFactory", SSLFactory.UNSAFE_SOCKET_FACTORY)
                         XposedHelpers.callMethod(param.thisObject, "setHostnameVerifier", SSLFactory.UNSAFE_VERIFIER)
                         Logger.hook("Fuel", "FuelManager initialized with unsafe SSL parameters")
-                    } catch (ignored: Throwable) {}
+                    } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

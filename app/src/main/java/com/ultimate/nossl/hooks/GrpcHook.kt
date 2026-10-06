@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import de.robv.android.xposed.XposedBridge
@@ -8,8 +10,13 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage
 import com.ultimate.nossl.utils.Logger
 import com.ultimate.nossl.utils.SSLFactory
 
-class GrpcHook {
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+class GrpcHook : BaseHook() {
+    override val id = "GrpcHook"
+    override val name = "GrpcHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookOkHttpChannelBuilder(lpparam)
         hookGrpcSecurity(lpparam)
     }
@@ -48,10 +55,10 @@ class GrpcHook {
                             XposedHelpers.callMethod(param.thisObject, "sslSocketFactory", SSLFactory.UNSAFE_SOCKET_FACTORY)
                             XposedHelpers.callMethod(param.thisObject, "hostnameVerifier", SSLFactory.UNSAFE_VERIFIER)
                             Logger.hook("gRPC", "$clsName.build injected with unsafe SSL")
-                        } catch (ignored: Throwable) {}
+                        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                     }
                 })
-            } catch (ignored: Throwable) { }
+            } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
         }
     }
 
@@ -66,6 +73,6 @@ class GrpcHook {
                     }
                 })
             }
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

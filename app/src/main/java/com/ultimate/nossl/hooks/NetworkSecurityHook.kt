@@ -1,15 +1,22 @@
 
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodReplacement
 import com.ultimate.nossl.utils.Logger
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class NetworkSecurityHook {
+class NetworkSecurityHook : BaseHook() {
+    override val id = "NetworkSecurityHook"
+    override val name = "NetworkSecurityHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
+
     
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookNetworkSecurityConfig(lpparam)
     }
 
@@ -48,7 +55,7 @@ class NetworkSecurityHook {
                         })
                     }
                 }
-            } catch (ignored: Throwable) { }
+            } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
         }
     }
 }

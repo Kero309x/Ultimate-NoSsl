@@ -1,5 +1,7 @@
 
 package com.ultimate.nossl.hooks
+
+import com.ultimate.nossl.core.api.BaseHook
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 
@@ -8,9 +10,14 @@ import com.ultimate.nossl.utils.Logger
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class CordovaHook {
+class CordovaHook : BaseHook() {
+    override val id = "CordovaHook"
+    override val name = "CordovaHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
+
     
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookCordovaWebView(lpparam)
         hookIonicWebView(lpparam)
         hookSystemWebViewClient(lpparam)
@@ -33,7 +40,7 @@ class CordovaHook {
                     }
                 }
             )
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookIonicWebView(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -53,7 +60,7 @@ class CordovaHook {
                     }
                 }
             )
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookSystemWebViewClient(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -73,6 +80,6 @@ class CordovaHook {
                     }
                 }
             )
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

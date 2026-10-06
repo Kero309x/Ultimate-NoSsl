@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import com.ultimate.nossl.utils.Logger
@@ -7,7 +9,12 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class ChromiumHook {
+class ChromiumHook : BaseHook() {
+    override val id = "ChromiumHook"
+    override val name = "ChromiumHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
+
 
     companion object {
         private var hooked = false
@@ -39,10 +46,10 @@ class ChromiumHook {
                                 if (resultClass != null) {
                                     try {
                                         return XposedHelpers.newInstance(resultClass, 0)
-                                    } catch (e: Throwable) {}
+                                    } catch (t: Throwable) { Logger.w("Soft fail: ${t.message}") }
                                     try {
                                         return XposedHelpers.newInstance(resultClass, 0, true, emptyList<Any>())
-                                    } catch (e: Throwable) {}
+                                    } catch (t: Throwable) { Logger.w("Soft fail: ${t.message}") }
                                 }
                             } catch (e: Throwable) {
                                 Logger.e("Chromium bypass result failed", e)
@@ -51,12 +58,12 @@ class ChromiumHook {
                         }
                     })
                     Logger.i("ChromiumHook applied to $clsName in WebView classloader")
-                } catch (e: Throwable) {}
+                } catch (t: Throwable) { Logger.w("Soft fail: ${t.message}") }
             }
         }
     }
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         val classes = listOf(
             "org.chromium.net.X509Util",
             "com.android.org.chromium.net.X509Util"
@@ -77,10 +84,10 @@ class ChromiumHook {
                             if (resultClass != null) {
                                 try {
                                     return XposedHelpers.newInstance(resultClass, 0)
-                                } catch (e: Throwable) {}
+                                } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                                 try {
                                     return XposedHelpers.newInstance(resultClass, 0, true, emptyList<Any>())
-                                } catch (e: Throwable) {}
+                                } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                             }
                         } catch (e: Throwable) {
                             Logger.e("Chromium bypass result failed", e)
@@ -88,7 +95,7 @@ class ChromiumHook {
                         return null
                     }
                 })
-            } catch (e: Throwable) {}
+            } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
         }
     }
 }

@@ -1,14 +1,21 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodReplacement
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import com.ultimate.nossl.utils.Logger
 
-class GmsHook {
+class GmsHook : BaseHook() {
+    override val id = "GmsHook"
+    override val name = "GmsHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookProviderInstaller(lpparam)
     }
 
@@ -37,11 +44,11 @@ class GmsHook {
                             }
                             onInstalledMethod?.isAccessible = true
                             onInstalledMethod?.invoke(listener)
-                        } catch (ignored: Throwable) { }
+                        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                     }
                     return null
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

@@ -1,4 +1,6 @@
 package com.ultimate.nossl.hooks
+
+import com.ultimate.nossl.core.api.BaseHook
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 
@@ -9,9 +11,14 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class UnityHook {
+class UnityHook : BaseHook() {
+    override val id = "UnityHook"
+    override val name = "UnityHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
+
     
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookUnityPlayer(lpparam)
         hookUnityWebRequest(lpparam)
     }
@@ -32,7 +39,7 @@ class UnityHook {
                     }
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
 
         try {
             val unityWebRequest = XposedHelpers.findClassIfExists(
@@ -45,7 +52,7 @@ class UnityHook {
                 })
                 Logger.hook("Unity", "UnityWebRequest.CertificateHandler bypassed")
             }
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookUnityWebRequest(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -62,7 +69,7 @@ class UnityHook {
                     }
                 })
             }
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
 
         try {
             XposedHelpers.findAndHookMethod(
@@ -76,6 +83,6 @@ class UnityHook {
                     }
                 }
             )
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

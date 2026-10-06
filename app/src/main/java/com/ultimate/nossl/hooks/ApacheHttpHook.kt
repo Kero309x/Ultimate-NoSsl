@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import de.robv.android.xposed.XposedBridge
@@ -7,9 +9,14 @@ import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import com.ultimate.nossl.utils.Logger
 
-class ApacheHttpHook {
+class ApacheHttpHook : BaseHook() {
+    override val id = "ApacheHttpHook"
+    override val name = "ApacheHttpHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookAbstractVerifier(lpparam)
         hookBrowserCompatHostnameVerifier(lpparam)
         hookStrictHostnameVerifier(lpparam)
@@ -34,7 +41,7 @@ class ApacheHttpHook {
                     }
                 }
             )
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookBrowserCompatHostnameVerifier(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -49,7 +56,7 @@ class ApacheHttpHook {
                     override fun replaceHookedMethod(param: MethodHookParam): Any = true
                 }
             )
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookStrictHostnameVerifier(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -64,7 +71,7 @@ class ApacheHttpHook {
                     override fun replaceHookedMethod(param: MethodHookParam): Any = true
                 }
             )
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookDefaultHttpClient(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -80,7 +87,7 @@ class ApacheHttpHook {
                     }
                 }
             )
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookHttpClientBuilder(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -104,9 +111,9 @@ class ApacheHttpHook {
                         ), java.security.SecureRandom())
                         XposedHelpers.setObjectField(client, "sslSocketFactory", relaxedSslContext.socketFactory)
                         Logger.hook("ApacheHttp", "HttpClientBuilder.build SSL injected")
-                    } catch (ignored: Throwable) {}
+                    } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
@@ -8,9 +10,14 @@ import com.ultimate.nossl.utils.Logger
 import com.ultimate.nossl.utils.SSLFactory
 import javax.net.ssl.HttpsURLConnection
 
-class KtorHook {
+class KtorHook : BaseHook() {
+    override val id = "KtorHook"
+    override val name = "KtorHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookKtorAndroidEngine(lpparam)
         hookKtorOkHttpEngine(lpparam)
         hookKtorCIOEngine(lpparam)
@@ -32,10 +39,10 @@ class KtorHook {
                         }
                         XposedHelpers.callMethod(param.thisObject, "setSslManager", sslManagerLambda)
                         Logger.hook("Ktor", "AndroidEngineConfig.sslManager injected")
-                    } catch (ignored: Throwable) {}
+                    } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookKtorOkHttpEngine(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -50,7 +57,7 @@ class KtorHook {
                     Logger.hook("Ktor", "OkHttpConfig constructed - SSL will be bypassed via OkHttpHook")
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookKtorCIOEngine(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -65,6 +72,6 @@ class KtorHook {
                     Logger.hook("Ktor", "CIOEngineConfig constructed - SSL will be bypassed via native hooks")
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

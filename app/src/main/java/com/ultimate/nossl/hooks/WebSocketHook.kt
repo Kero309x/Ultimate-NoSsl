@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
@@ -8,9 +10,14 @@ import com.ultimate.nossl.utils.Logger
 import com.ultimate.nossl.utils.SSLFactory
 import javax.net.SocketFactory
 
-class WebSocketHook {
+class WebSocketHook : BaseHook() {
+    override val id = "WebSocketHook"
+    override val name = "WebSocketHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookJavaWebSocket(lpparam)
         hookNvWebSocketClient(lpparam)
     }
@@ -24,7 +31,7 @@ class WebSocketHook {
                         try {
                             XposedHelpers.callMethod(param.thisObject, "setSocketFactory", SSLFactory.UNSAFE_SOCKET_FACTORY as SocketFactory)
                             Logger.hook("WebSocket", "Java-WebSocket client injected with unsafe factory")
-                        } catch (ignored: Throwable) {}
+                        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                     }
                 })
 
@@ -36,7 +43,7 @@ class WebSocketHook {
                     }
                 })
             }
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookNvWebSocketClient(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -67,6 +74,6 @@ class WebSocketHook {
                     }
                 })
             }
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

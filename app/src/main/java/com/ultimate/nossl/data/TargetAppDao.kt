@@ -12,6 +12,9 @@ interface TargetAppDao {
     @Query("SELECT COUNT(*) FROM target_apps")
     fun getTargetCount(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM target_apps")
+    fun getTargetCountSync(): Int
+
     @Query("SELECT COUNT(*) FROM target_apps WHERE isEnabled = 1")
     fun getEnabledTargetCount(): Flow<Int>
 

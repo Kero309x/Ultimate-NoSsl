@@ -1,5 +1,7 @@
 
 package com.ultimate.nossl.hooks
+
+import com.ultimate.nossl.core.api.BaseHook
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 
@@ -9,9 +11,14 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class CertificateTransparencyHook {
+class CertificateTransparencyHook : BaseHook() {
+    override val id = "CertificateTransparencyHook"
+    override val name = "CertificateTransparencyHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
+
     
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookCTVerifier(lpparam)
         hookCTLogStore(lpparam)
         hookCTPolicy(lpparam)
@@ -36,7 +43,7 @@ class CertificateTransparencyHook {
                     return true
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookCTLogStore(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -51,7 +58,7 @@ class CertificateTransparencyHook {
                     return emptyList<Any>()
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookCTPolicy(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -66,6 +73,6 @@ class CertificateTransparencyHook {
                     return true
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

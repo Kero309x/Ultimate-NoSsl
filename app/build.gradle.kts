@@ -15,7 +15,7 @@ android {
     applicationId = "com.ultimate.nossl"
     minSdk = 24
     targetSdk = 35
-    versionCode = 1
+    versionCode = 2
     versionName = "2.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -34,11 +34,24 @@ android {
     }
   }
 
+  signingConfigs {
+    create("release") {
+        providers.gradleProperty("ULTIMATE_KEYSTORE_PATH").orNull?.let {
+            storeFile = file(it)
+            storePassword = providers.gradleProperty("ULTIMATE_STORE_PASSWORD").orNull
+            keyAlias = providers.gradleProperty("ULTIMATE_KEY_ALIAS").orNull
+            keyPassword = providers.gradleProperty("ULTIMATE_KEY_PASSWORD").orNull
+        }
+    }
+  }
+
   buildTypes {
     release {
       isCrunchPngs = false
-      isMinifyEnabled = false
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+      signingConfig = signingConfigs.findByName("release")
     }
     debug { }
   }
@@ -73,8 +86,6 @@ dependencies {
   implementation(libs.androidx.room.runtime)
   ksp(libs.androidx.room.compiler)
   implementation(libs.kotlinx.coroutines.android)
-  implementation(libs.kotlinx.coroutines.core)
-  implementation(libs.okhttp)
   implementation(libs.shadowhook)
   compileOnly("de.robv.android.xposed:api:82")
   testImplementation(libs.junit)

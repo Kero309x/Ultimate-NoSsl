@@ -1,6 +1,8 @@
 
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import de.robv.android.xposed.XposedBridge
@@ -10,9 +12,14 @@ import com.ultimate.nossl.utils.Logger
 import com.ultimate.nossl.utils.SSLFactory
 import javax.net.ssl.HttpsURLConnection
 
-class CustomPinningHook {
+class CustomPinningHook : BaseHook() {
+    override val id = "CustomPinningHook"
+    override val name = "CustomPinningHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookTrustKit(lpparam)
         hookAppAuth(lpparam)
         hookAppClarity(lpparam)
@@ -42,7 +49,7 @@ class CustomPinningHook {
                         return SSLFactory.UNSAFE_SOCKET_FACTORY
                     }
                 })
-            } catch (ignored: Throwable) { }
+            } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
         }
 
         try {
@@ -58,7 +65,7 @@ class CustomPinningHook {
                     }
                 })
             }
-        } catch (ignored: Throwable) {}
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookAppAuth(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -76,11 +83,11 @@ class CustomPinningHook {
                             conn.sslSocketFactory = SSLFactory.UNSAFE_SOCKET_FACTORY
                             conn.hostnameVerifier = SSLFactory.UNSAFE_VERIFIER
                             Logger.hook("AppAuth", "DefaultConnectionBuilder.openConnection configured with unsafe SSL")
-                        } catch (ignored: Throwable) {}
+                        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                     }
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookAppClarity(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -96,7 +103,7 @@ class CustomPinningHook {
                     return param.args.firstOrNull() as? List<*> ?: emptyList<Any>()
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookTink(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -111,6 +118,6 @@ class CustomPinningHook {
                     override fun replaceHookedMethod(param: MethodHookParam): Any = true
                 })
             }
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

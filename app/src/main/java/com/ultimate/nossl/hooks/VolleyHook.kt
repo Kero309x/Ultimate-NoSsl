@@ -1,6 +1,8 @@
 
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import com.ultimate.nossl.utils.Logger
@@ -10,9 +12,14 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 
-class VolleyHook {
+class VolleyHook : BaseHook() {
+    override val id = "VolleyHook"
+    override val name = "VolleyHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
+
     
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookHurlStack(lpparam)
     }
 
@@ -34,6 +41,6 @@ class VolleyHook {
                     }
                 }
             )
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

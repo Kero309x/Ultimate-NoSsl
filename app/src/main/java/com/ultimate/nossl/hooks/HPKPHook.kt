@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import de.robv.android.xposed.XposedBridge
@@ -7,9 +9,14 @@ import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import com.ultimate.nossl.utils.Logger
 
-class HPKPHook {
+class HPKPHook : BaseHook() {
+    override val id = "HPKPHook"
+    override val name = "HPKPHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookHpkpEnforcement(lpparam)
         hookHpkpHeaderParser(lpparam)
         hookHpkpPolicy(lpparam)
@@ -35,7 +42,7 @@ class HPKPHook {
                     return true
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookHpkpHeaderParser(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -57,7 +64,7 @@ class HPKPHook {
                     return false
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookHpkpPolicy(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -79,7 +86,7 @@ class HPKPHook {
                     return true
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookHpkpPin(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -94,6 +101,6 @@ class HPKPHook {
                     return true
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

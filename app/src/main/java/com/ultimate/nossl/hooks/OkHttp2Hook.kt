@@ -1,5 +1,7 @@
 
 package com.ultimate.nossl.hooks
+
+import com.ultimate.nossl.core.api.BaseHook
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 
@@ -9,9 +11,14 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class OkHttp2Hook {
+class OkHttp2Hook : BaseHook() {
+    override val id = "OkHttp2Hook"
+    override val name = "OkHttp2Hook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
+
     
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
             val pinner = XposedHelpers.findClassIfExists("com.squareup.okhttp.CertificatePinner", lpparam.classLoader)
             if (pinner != null) {
@@ -40,6 +47,6 @@ class OkHttp2Hook {
                     }
                 })
             }
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

@@ -1,14 +1,21 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import com.ultimate.nossl.utils.Logger
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class ProxyDetectionHook {
+class ProxyDetectionHook : BaseHook() {
+    override val id = "ProxyDetectionHook"
+    override val name = "ProxyDetectionHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookNetworkCapabilities(lpparam)
         hookNetworkInterface(lpparam)
     }
@@ -30,7 +37,7 @@ class ProxyDetectionHook {
                     }
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookNetworkInterface(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -48,6 +55,6 @@ class ProxyDetectionHook {
                     }
                 })
             }
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

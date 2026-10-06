@@ -39,7 +39,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getInstance(application)
     private val logDao = db.hookLogDao()
     private val targetDao = db.targetAppDao()
-    private val prefs = application.getSharedPreferences("ultimate_nossl_prefs", Context.MODE_PRIVATE)
+    private val configRepo = com.ultimate.nossl.ui.config.UiConfigurationRepository(application)
 
     val logs: StateFlow<List<HookLogEntity>> = logDao.getAllLogs()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -93,7 +93,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             HookModuleInfo("ConstructorWatcher", "Constructor Watcher", "Core", "Watches new SSL-related object construction", "Core Module"),
             HookModuleInfo("NativeInterceptor", "Native .so Interceptor", "Core", "Intercepts native library loading via dlopen", "Core Module")
         ).map { hook ->
-            val isEnabled = prefs.getBoolean("hook_${hook.id}", true)
+            val isEnabled = configRepo.isHookEnabled(hook.id)
             hook.copy(isEnabled = isEnabled)
         }
     )
@@ -132,21 +132,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     level = "INFO"
                 )
             )
-            val pm = getApplication<Application>().packageManager
-            val packages = pm.getInstalledPackages(PackageManager.GET_META_DATA)
-            packages.forEach { pkg ->
-                val appName = pkg.applicationInfo?.loadLabel(pm)?.toString() ?: pkg.packageName
-                val isSys = (pkg.applicationInfo?.flags ?: 0) and ApplicationInfo.FLAG_SYSTEM != 0
-                val isEnabled = prefs.getBoolean("app_${pkg.packageName}", true)
-                targetDao.insertOrUpdate(
-                    TargetAppEntity(
-                        packageName = pkg.packageName,
-                        appName = appName,
-                        isEnabled = isEnabled,
-                        isSystemApp = isSys,
-                        notes = if (isSys) "System Service" else "User Application"
+            
+            if (targetDao.getTargetCountSync() == 0) {
+                val pm = getApplication<Application>().packageManager
+                val packages = pm.getInstalledPackages(PackageManager.GET_META_DATA)
+                packages.forEach { pkg ->
+                    val appName = pkg.applicationInfo?.loadLabel(pm)?.toString() ?: pkg.packageName
+                    val isSys = (pkg.applicationInfo?.flags ?: 0) and ApplicationInfo.FLAG_SYSTEM != 0
+                    val isEnabled = configRepo.isTargetAppEnabled(pkg.packageName)
+                    targetDao.insertOrUpdate(
+                        TargetAppEntity(
+                            packageName = pkg.packageName,
+                            appName = appName,
+                            isEnabled = isEnabled,
+                            isSystemApp = isSys,
+                            notes = if (isSys) "System Service" else "User Application"
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -155,7 +158,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _hooksList.value = _hooksList.value.map {
             if (it.id == id) {
                 val newState = !it.isEnabled
-                prefs.edit().putBoolean("hook_$id", newState).apply()
+                configRepo.setHookEnabled(id, newState)
                 it.copy(isEnabled = newState)
             } else it
         }
@@ -164,7 +167,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleTargetApp(target: TargetAppEntity) {
         viewModelScope.launch(Dispatchers.IO) {
             val newState = !target.isEnabled
-            prefs.edit().putBoolean("app_${target.packageName}", newState).apply()
+            configRepo.setTargetAppEnabled(target.packageName, newState)
             targetDao.insertOrUpdate(target.copy(isEnabled = newState))
         }
     }
@@ -179,9 +182,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             _isTesting.value = true
             val startTime = System.currentTimeMillis()
+            var connection: HttpURLConnection? = null
             try {
                 val url = URL(targetUrl)
-                val connection = url.openConnection() as HttpURLConnection
+                connection = url.openConnection() as HttpURLConnection
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
                 connection.requestMethod = "GET"
@@ -195,7 +199,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     message = "Connection Succeeded (HTTP $code) - SSL Pinning Bypassed",
                     timeMs = elapsed
                 )
-                _testResults.value = listOf(result) + _testResults.value
+                _testResults.value = (listOf(result) + _testResults.value).take(50)
                 logDao.insertLog(
                     HookLogEntity(
                         tag = "TEST_LAB",
@@ -213,7 +217,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     message = "Error: ${e.localizedMessage ?: "SSL Handshake Failed"}",
                     timeMs = elapsed
                 )
-                _testResults.value = listOf(result) + _testResults.value
+                _testResults.value = (listOf(result) + _testResults.value).take(50)
                 logDao.insertLog(
                     HookLogEntity(
                         tag = "TEST_LAB",
@@ -223,6 +227,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 )
             } finally {
+                connection?.disconnect()
                 _isTesting.value = false
             }
         }

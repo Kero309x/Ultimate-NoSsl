@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import de.robv.android.xposed.XposedBridge
@@ -7,9 +9,14 @@ import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import com.ultimate.nossl.utils.Logger
 
-class Tls13Hook {
+class Tls13Hook : BaseHook() {
+    override val id = "Tls13Hook"
+    override val name = "Tls13Hook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookTls13Handshaker(lpparam)
         hookTls13CipherSuite(lpparam)
         hookTls13KeyShare(lpparam)
@@ -32,7 +39,7 @@ class Tls13Hook {
                     return param.result
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookTls13CipherSuite(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -51,7 +58,7 @@ class Tls13Hook {
                     }
                 }
             )
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookTls13KeyShare(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -73,7 +80,7 @@ class Tls13Hook {
                     return ByteArray(32)
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookTls13CertificateVerify(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -89,6 +96,6 @@ class Tls13Hook {
                     return true
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

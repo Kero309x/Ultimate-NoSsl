@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
@@ -7,9 +9,14 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage
 import com.ultimate.nossl.utils.Logger
 import java.io.File
 
-class AntiDetectionHook {
+class AntiDetectionHook : BaseHook() {
+    override val id = "AntiDetectionHook"
+    override val name = "AntiDetectionHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
 
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookPackageManager(lpparam)
         hookStackTraces(lpparam)
         hookFileChecks(lpparam)
@@ -61,7 +68,7 @@ class AntiDetectionHook {
                                 val pkgName = pkg?.javaClass?.getMethod("getPackageName")?.invoke(pkg)?.toString() ?: ""
                                 badPackages.contains(pkgName)
                             }
-                        } catch (ignored: Throwable) {}
+                        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                     }
                 })
 
@@ -76,11 +83,11 @@ class AntiDetectionHook {
                                     ?.toString() ?: ""
                                 badPackages.contains(pkgName)
                             }
-                        } catch (ignored: Throwable) {}
+                        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                     }
                 })
             }
-        } catch (ignored: Throwable) {}
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookStackTraces(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -90,6 +97,7 @@ class AntiDetectionHook {
                 "getStackTrace",
                 object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
+                        @Suppress("UNCHECKED_CAST")
                         val stack = param.result as? Array<StackTraceElement> ?: return
                         val cleanStack = stack.filterNot { elem ->
                             val name = elem.className
@@ -105,7 +113,7 @@ class AntiDetectionHook {
                     }
                 }
             )
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookFileChecks(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -146,6 +154,6 @@ class AntiDetectionHook {
                     }
                 }
             )
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

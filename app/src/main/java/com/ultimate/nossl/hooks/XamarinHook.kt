@@ -1,5 +1,7 @@
 
 package com.ultimate.nossl.hooks
+
+import com.ultimate.nossl.core.api.BaseHook
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 
@@ -10,9 +12,14 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class XamarinHook {
+class XamarinHook : BaseHook() {
+    override val id = "XamarinHook"
+    override val name = "XamarinHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
+
     
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookMonoRuntime(lpparam)
         hookXamarinHttp(lpparam)
         hookX509Extensions(lpparam)
@@ -26,7 +33,7 @@ class XamarinHook {
                     Logger.hook("Xamarin", "mono.android.Runtime.register")
                 }
             })
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
 
         try {
             val tlsProvider = XposedHelpers.findClassIfExists("Mono.Security.Interface.MonoTlsProvider", lpparam.classLoader)
@@ -35,7 +42,7 @@ class XamarinHook {
                     override fun replaceHookedMethod(param: MethodHookParam): Any = false
                 })
             }
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookXamarinHttp(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -53,7 +60,7 @@ class XamarinHook {
                         return (param.args.firstOrNull() as? Array<*>)?.filterIsInstance<java.security.cert.X509Certificate>()?.toList() ?: emptyList<java.security.cert.X509Certificate>()
                     }
                 })
-            } catch (e: Throwable) { }
+            } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
         }
     }
 
@@ -74,6 +81,6 @@ class XamarinHook {
                     }
                 }
             )
-        } catch (e: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }

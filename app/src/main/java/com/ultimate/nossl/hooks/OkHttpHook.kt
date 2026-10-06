@@ -1,5 +1,7 @@
 package com.ultimate.nossl.hooks
 
+import com.ultimate.nossl.core.api.BaseHook
+
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import com.ultimate.nossl.utils.Logger
@@ -8,9 +10,14 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class OkHttpHook {
+class OkHttpHook : BaseHook() {
+    override val id = "OkHttpHook"
+    override val name = "OkHttpHook"
+    override val targetFramework = "Unknown"
+    override fun isSupported(lpparam: XC_LoadPackage.LoadPackageParam) = true
+
     
-    fun init(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun onInstall(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookCertificatePinner(lpparam)
         hookHostnameVerifier(lpparam)
         hookCertificateChainCleaner(lpparam)
@@ -36,7 +43,7 @@ class OkHttpHook {
                         return emptyList<Any>()
                     }
                 })
-            } catch (ignored: Throwable) { }
+            } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
         }
     }
 
@@ -51,7 +58,7 @@ class OkHttpHook {
                     }
                 })
             }
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookCertificateChainCleaner(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -67,7 +74,7 @@ class OkHttpHook {
                     }
                 })
             }
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 
     private fun hookOkHttp3Builder(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -79,10 +86,10 @@ class OkHttpHook {
                     val builder = param.thisObject
                     try {
                         XposedHelpers.callMethod(builder, "sslSocketFactory", SSLFactory.UNSAFE_SOCKET_FACTORY, SSLFactory.TRUST_ALL)
-                    } catch (ignored: Throwable) { }
+                    } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                     try {
                         XposedHelpers.callMethod(builder, "hostnameVerifier", SSLFactory.UNSAFE_VERIFIER)
-                    } catch (ignored: Throwable) { }
+                    } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                     try {
                         val pinnerCls = XposedHelpers.findClassIfExists("okhttp3.CertificatePinner", lpparam.classLoader)
                         if (pinnerCls != null) {
@@ -91,7 +98,7 @@ class OkHttpHook {
                                 XposedHelpers.callMethod(builder, "certificatePinner", defaultPinner)
                             }
                         }
-                    } catch (ignored: Throwable) { }
+                    } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
                 }
             })
 
@@ -115,6 +122,6 @@ class OkHttpHook {
                     }
                 }
             })
-        } catch (ignored: Throwable) { }
+        } catch (t: Throwable) { logDiagnostic("Soft fail: ${t.message}") }
     }
 }
